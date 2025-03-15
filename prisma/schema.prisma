@@ -57,9 +57,11 @@ model Student {
   id            String    @id @default(cuid())
   userId        String    @unique
   user          User      @relation(fields: [userId], references: [id])
-  admissionNo   String    @unique
-  grade         String
-  section       String
+  rollNumber    String
+  classId       String
+  class         Class     @relation(fields: [classId], references: [id])
+  parentId      String
+  parent        Parent    @relation(fields: [parentId], references: [id])
   
   // Academic records
   attendances   Attendance[]
@@ -69,12 +71,11 @@ model Student {
   // Financial records
   feePayments   FeePayment[]
   
-  // Parent relationship
-  parentId      String
-  parent        Parent     @relation(fields: [parentId], references: [id])
-  
   // Quiz participation
   quizResults   QuizResult[]
+
+  // Ensure roll number is unique within a class
+  @@unique([classId, rollNumber])
 }
 
 model Teacher {
@@ -111,13 +112,16 @@ model Class {
   teacherId     String
   teacher       Teacher   @relation(fields: [teacherId], references: [id])
   
-  // Class activities
+  // Relations
+  students      Student[]
   subjects      Subject[]
   assignments   Assignment[]
   examResults   ExamResult[]
   
   // Communication
   chatRoom      ChatRoom?
+
+  @@unique([grade, section])
 }
 
 model Subject {
