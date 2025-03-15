@@ -1,0 +1,281 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  TEACHER
+  STUDENT
+  PARENT
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String
+  role          Role
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Profile information
+  firstName     String
+  lastName      String
+  phoneNumber   String?
+  address       String?
+  dateOfBirth   DateTime?
+  
+  // Role-specific relations
+  student       Student?
+  teacher       Teacher?
+  parent        Parent?
+
+  // Common relations
+  notifications Notification[]
+  messages      Message[]
+  chatRooms    ChatRoomUser[]
+}
+
+model Student {
+  id            String    @id @default(cuid())
+  userId        String    @unique
+  user          User      @relation(fields: [userId], references: [id])
+  admissionNo   String    @unique
+  grade         String
+  section       String
+  
+  // Academic records
+  attendances   Attendance[]
+  examResults   ExamResult[]
+  assignments   Assignment[]
+  
+  // Financial records
+  feePayments   FeePayment[]
+  
+  // Parent relationship
+  parentId      String
+  parent        Parent     @relation(fields: [parentId], references: [id])
+  
+  // Quiz participation
+  quizResults   QuizResult[]
+}
+
+model Teacher {
+  id            String    @id @default(cuid())
+  userId        String    @unique
+  user          User      @relation(fields: [userId], references: [id])
+  employeeId    String    @unique
+  subjects      Subject[]
+  
+  // Teaching related
+  classes       Class[]
+  assignments   Assignment[]
+  examResults   ExamResult[]
+  
+  // Administrative
+  dutyLogs      TeacherDuty[]
+  attendanceLogs TeacherAttendance[]
+  
+  // Quiz management
+  createdQuizzes Quiz[]
+}
+
+model Parent {
+  id            String    @id @default(cuid())
+  userId        String    @unique
+  user          User      @relation(fields: [userId], references: [id])
+  students      Student[]
+}
+
+model Class {
+  id            String    @id @default(cuid())
+  grade         String
+  section       String
+  teacherId     String
+  teacher       Teacher   @relation(fields: [teacherId], references: [id])
+  
+  // Class activities
+  subjects      Subject[]
+  assignments   Assignment[]
+  examResults   ExamResult[]
+  
+  // Communication
+  chatRoom      ChatRoom?
+}
+
+model Subject {
+  id            String    @id @default(cuid())
+  name          String
+  code          String    @unique
+  description   String?
+  classes       Class[]
+  teachers      Teacher[]
+  assignments   Assignment[]
+  examResults   ExamResult[]
+}
+
+model Assignment {
+  id            String    @id @default(cuid())
+  title         String
+  description   String
+  dueDate       DateTime
+  subjectId     String
+  subject       Subject   @relation(fields: [subjectId], references: [id])
+  classId       String
+  class         Class     @relation(fields: [classId], references: [id])
+  teacherId     String
+  teacher       Teacher   @relation(fields: [teacherId], references: [id])
+  students      Student[]
+}
+
+model ExamResult {
+  id            String    @id @default(cuid())
+  examDate      DateTime
+  marks         Float
+  totalMarks    Float
+  studentId     String
+  student       Student   @relation(fields: [studentId], references: [id])
+  subjectId     String
+  subject       Subject   @relation(fields: [subjectId], references: [id])
+  classId       String
+  class         Class     @relation(fields: [classId], references: [id])
+  teacherId     String
+  teacher       Teacher   @relation(fields: [teacherId], references: [id])
+}
+
+model Attendance {
+  id            String    @id @default(cuid())
+  date          DateTime
+  status        String    // Present, Absent, Late
+  studentId     String
+  student       Student   @relation(fields: [studentId], references: [id])
+}
+
+model TeacherAttendance {
+  id            String    @id @default(cuid())
+  date          DateTime
+  checkIn       DateTime
+  checkOut      DateTime?
+  teacherId     String
+  teacher       Teacher   @relation(fields: [teacherId], references: [id])
+}
+
+model TeacherDuty {
+  id            String    @id @default(cuid())
+  date          DateTime
+  dutyType      String
+  description   String?
+  teacherId     String
+  teacher       Teacher   @relation(fields: [teacherId], references: [id])
+}
+
+model FeePayment {
+  id            String        @id @default(cuid())
+  amount        Float
+  dueDate       DateTime
+  paidDate      DateTime?
+  status        PaymentStatus
+  description   String?
+  studentId     String
+  student       Student       @relation(fields: [studentId], references: [id])
+}
+
+model Notice {
+  id            String    @id @default(cuid())
+  title         String
+  content       String
+  category      String    // Student, Teacher, Parent, General
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  expiresAt     DateTime?
+}
+
+model Quiz {
+  id            String    @id @default(cuid())
+  title         String
+  description   String
+  startTime     DateTime
+  endTime       DateTime
+  teacherId     String
+  teacher       Teacher   @relation(fields: [teacherId], references: [id])
+  questions     Question[]
+  results       QuizResult[]
+}
+
+model Question {
+  id            String    @id @default(cuid())
+  content       String
+  options       String[]
+  correctAnswer String
+  points        Int
+  quizId        String
+  quiz          Quiz      @relation(fields: [quizId], references: [id])
+}
+
+model QuizResult {
+  id            String    @id @default(cuid())
+  score         Int
+  submittedAt   DateTime
+  quizId        String
+  quiz          Quiz      @relation(fields: [quizId], references: [id])
+  studentId     String
+  student       Student   @relation(fields: [studentId], references: [id])
+}
+
+model ChatRoom {
+  id            String    @id @default(cuid())
+  name          String
+  type          String    // Class, Club
+  classId       String?   @unique
+  class         Class?    @relation(fields: [classId], references: [id])
+  messages      Message[]
+  participants  ChatRoomUser[]
+}
+
+model ChatRoomUser {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  chatRoomId    String
+  chatRoom      ChatRoom  @relation(fields: [chatRoomId], references: [id])
+  joinedAt      DateTime  @default(now())
+
+  @@unique([userId, chatRoomId])
+}
+
+model Message {
+  id            String    @id @default(cuid())
+  content       String
+  createdAt     DateTime  @default(now())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  chatRoomId    String
+  chatRoom      ChatRoom  @relation(fields: [chatRoomId], references: [id])
+}
+
+model Notification {
+  id            String    @id @default(cuid())
+  title         String
+  content       String
+  isRead        Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+}
