@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import type { StudentWithRelations } from '@/types';
 
 type StudentListProps = {
@@ -51,7 +52,12 @@ export default function StudentList({ students }: StudentListProps) {
             {filteredStudents.map((student) => (
               <tr key={student.id}>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  {student.user.firstName} {student.user.lastName}
+                  <Link
+                    href={`/students/${student.id}`}
+                    className="text-blue-600 hover:text-blue-900"
+                  >
+                    {student.user.firstName} {student.user.lastName}
+                  </Link>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">{student.rollNumber}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -61,18 +67,18 @@ export default function StudentList({ students }: StudentListProps) {
                   {student.class.teacher.user.firstName} {student.class.teacher.user.lastName}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">{student.user.email}</td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <button
-                    onClick={() => {/* TODO: Implement edit functionality */}}
-                    className="text-blue-600 hover:text-blue-900 mr-4"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => {/* TODO: Implement view functionality */}}
-                    className="text-green-600 hover:text-green-900"
+                <td className="px-6 py-4 whitespace-nowrap space-x-3">
+                  <Link
+                    href={`/students/${student.id}`}
+                    className="text-blue-600 hover:text-blue-900"
                   >
                     View
+                  </Link>
+                  <button
+                    onClick={() => {/* TODO: Implement edit functionality */}}
+                    className="text-green-600 hover:text-green-900"
+                  >
+                    Edit
                   </button>
                 </td>
               </tr>
