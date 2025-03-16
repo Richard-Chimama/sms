@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
+import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import prisma from '@/lib/db/prisma';
 import { z } from 'zod';
+import { Session } from 'next-auth';
 
 const assignmentSchema = z.object({
   title: z.string().min(1, 'Title is required'),
@@ -15,7 +16,7 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = (await getServerSession(authOptions)) as Session;
 
     if (!session || session.user.role !== 'TEACHER') {
       return new NextResponse('Unauthorized', { status: 401 });
@@ -27,33 +28,54 @@ export async function POST(
     // Verify that the teacher is assigned to this subject
     const subject = await prisma.subject.findUnique({
       where: { id: params.id },
-      include: { class: { include: { students: true } } },
+      include: { teacher: true },
     });
 
     if (!subject) {
       return new NextResponse('Subject not found', { status: 404 });
     }
 
-    if (subject.teacherId !== (await prisma.teacher.findUnique({ where: { userId: session.user.id } }))?.id) {
+    const teacher = await prisma.teacher.findUnique({
+      where: { userId: session.user.id },
+    });
+
+    if (!teacher || subject.teacherId !== teacher.id) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    // Create assignments for all students in the class
-    const assignments = await prisma.$transaction(
-      subject.class.students.map((student) =>
-        prisma.assignment.create({
-          data: {
-            title: validatedData.title,
-            description: validatedData.description,
-            dueDate: validatedData.dueDate,
-            studentId: student.id,
-            subjectId: params.id,
+    // Create the assignment
+    const assignment = await prisma.assignment.create({
+      data: {
+        title: validatedData.title,
+        description: validatedData.description,
+        dueDate: validatedData.dueDate,
+        teacherId: teacher.id,
+        subjectId: params.id,
+      },
+      include: {
+        subject: {
+          include: {
+            class: true,
           },
-        })
-      )
-    );
+        },
+        submissions: {
+          include: {
+            student: {
+              include: {
+                user: {
+                  select: {
+                    firstName: true,
+                    lastName: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
 
-    return NextResponse.json(assignments);
+    return NextResponse.json(assignment);
   } catch (error) {
     if (error instanceof z.ZodError) {
       return new NextResponse('Invalid request data', { status: 400 });
@@ -68,7 +90,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = (await getServerSession(authOptions)) as Session;
 
     if (!session) {
       return new NextResponse('Unauthorized', { status: 401 });
@@ -95,12 +117,21 @@ export async function GET(
       const assignments = await prisma.assignment.findMany({
         where: { subjectId: params.id },
         include: {
-          student: {
+          subject: {
             include: {
-              user: {
-                select: {
-                  firstName: true,
-                  lastName: true,
+              class: true,
+            },
+          },
+          submissions: {
+            include: {
+              student: {
+                include: {
+                  user: {
+                    select: {
+                      firstName: true,
+                      lastName: true,
+                    },
+                  },
                 },
               },
             },
@@ -112,7 +143,7 @@ export async function GET(
       return NextResponse.json(assignments);
     }
 
-    // If student, get only their assignments
+    // If student, get assignments for the subject and include their submissions
     if (session.user.role === 'STUDENT') {
       const student = await prisma.student.findUnique({
         where: { userId: session.user.id },
@@ -123,9 +154,28 @@ export async function GET(
       }
 
       const assignments = await prisma.assignment.findMany({
-        where: {
-          subjectId: params.id,
-          studentId: student.id,
+        where: { subjectId: params.id },
+        include: {
+          subject: {
+            include: {
+              class: true,
+            },
+          },
+          submissions: {
+            where: { studentId: student.id },
+            include: {
+              student: {
+                include: {
+                  user: {
+                    select: {
+                      firstName: true,
+                      lastName: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
         },
         orderBy: { createdAt: 'desc' },
       });
@@ -134,7 +184,8 @@ export async function GET(
     }
 
     return new NextResponse('Unauthorized', { status: 401 });
-  } catch {
+  } catch (error) {
+    console.error('[ASSIGNMENTS_GET]', error);
     return new NextResponse('Internal error', { status: 500 });
   }
 } 

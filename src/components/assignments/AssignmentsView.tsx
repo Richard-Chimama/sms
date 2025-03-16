@@ -55,7 +55,7 @@ export default function AssignmentsView({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Assignments</h1>
+        <h1 className="text-2xl text-white font-bold">Assignments</h1>
         <Button onClick={() => setIsAddingAssignment(true)}>
           <Plus className="mr-2 h-4 w-4" />
           Add Assignment

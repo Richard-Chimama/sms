@@ -61,6 +61,8 @@ model User {
   notices  Notice[]
   chatParticipants ChatParticipant[]
   messages         Message[]
+  notifications    Notification[]    @relation("UserNotifications")
+  notificationsSent Notification[]   @relation("NotificationSender")
 
   @@index([role])
 }
@@ -431,4 +433,34 @@ model Message {
   updatedAt DateTime @updatedAt
   chat      Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum NotificationType {
+  MESSAGE
+  EXAM
+  ASSIGNMENT
+  NOTICE
+  FEE
+  ATTENDANCE
+}
+
+model Notification {
+  id          String           @id @default(cuid())
+  type        NotificationType
+  title       String
+  content     String
+  isRead      Boolean          @default(false)
+  userId      String
+  senderId    String
+  link        String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  user        User             @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+  sender      User             @relation("NotificationSender", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([senderId])
+  @@index([type])
+  @@index([isRead])
 }

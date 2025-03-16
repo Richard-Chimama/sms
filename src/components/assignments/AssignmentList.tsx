@@ -80,7 +80,7 @@ export default function AssignmentList({ assignments }: AssignmentListProps) {
                 <CardTitle className="text-lg line-clamp-1" title={assignment.title}>
                   {assignment.title}
                 </CardTitle>
-                <Badge variant="outline">
+                <Badge variant="outline text-white">
                   {assignment.subject.name} ({assignment.subject.class.grade}-
                   {assignment.subject.class.section})
                 </Badge>
@@ -158,7 +158,7 @@ export default function AssignmentList({ assignments }: AssignmentListProps) {
             <CardFooter className="mt-auto pt-4">
               <Link
                 href={`/assignments/${assignment.id}`}
-                className="w-full"
+                className="w-full text-black"
               >
                 <Button variant="outline" className="w-full">
                   <Eye className="mr-2 h-4 w-4" />

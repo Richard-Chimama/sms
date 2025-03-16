@@ -31,6 +31,19 @@ export async function POST(request: Request) {
           },
         },
       },
+      include: {
+        participants: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+              },
+            },
+          },
+        },
+      },
     });
 
     if (!chat) {
@@ -61,8 +74,48 @@ export async function POST(request: Request) {
       data: { updatedAt: new Date() },
     });
 
-    // Trigger Pusher event
+    // Create notifications for other participants
+    const otherParticipants = chat.participants.filter(
+      (p) => p.user.id !== session.user.id
+    );
+
+    const senderName = `${session.user.firstName || ''} ${
+      session.user.lastName || ''
+    }`.trim();
+
+    await Promise.all(
+      otherParticipants.map((participant) =>
+        prisma.notification.create({
+          data: {
+            type: 'MESSAGE',
+            title: `New message from ${senderName || 'Unknown User'}`,
+            content: content.length > 100 ? content.slice(0, 97) + '...' : content,
+            userId: participant.user.id,
+            senderId: session.user.id,
+            link: `/chats/${chatId}`,
+          },
+        })
+      )
+    );
+
+    // Trigger Pusher events
     await pusherServer.trigger(`chat-${chatId}`, 'new-message', message);
+    
+    // Send notifications to other participants
+    await Promise.all(
+      otherParticipants.map((participant) =>
+        pusherServer.trigger(
+          `user-${participant.user.id}`,
+          'new-notification',
+          {
+            type: 'MESSAGE',
+            title: `New message from ${senderName || 'Unknown User'}`,
+            content: content.length > 100 ? content.slice(0, 97) + '...' : content,
+            link: `/chats/${chatId}`,
+          }
+        )
+      )
+    );
 
     return NextResponse.json(message);
   } catch (error) {

@@ -66,7 +66,7 @@ export default async function AssignmentDetailsPage({ params }: AssignmentDetail
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">{assignment.title}</h1>
+          <h1 className="text-2xl text-white font-bold">{assignment.title}</h1>
           <p className="text-muted-foreground">
             {assignment.subject.name} ({assignment.subject.class.grade}-
             {assignment.subject.class.section})

@@ -78,12 +78,23 @@ type AttendanceResponse = {
 
 export default function MyClassesView({ teacher }: MyClassesViewProps) {
   const [activeTab, setActiveTab] = useState<'attendance' | 'assignments'>('attendance');
-  const [date, setDate] = useState<Date>(new Date());
+  const [date, setDate] = useState<Date>(() => {
+    const today = new Date();
+    // Reset time to midnight to ensure consistent rendering
+    today.setHours(0, 0, 0, 0);
+    return today;
+  });
   const [attendanceMap, setAttendanceMap] = useState<Record<string, StudentAttendance>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [assignments, setAssignments] = useState<AssignmentWithDetails[]>([]);
   const [selectedSubject, setSelectedSubject] = useState<string>('');
   const [isAddingAssignment, setIsAddingAssignment] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  // Handle client-side mounting
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Function to fetch existing attendance for a class on a specific date
   const fetchAttendance = async (classId: string, selectedDate: Date) => {
@@ -243,43 +254,54 @@ export default function MyClassesView({ teacher }: MyClassesViewProps) {
                     <div className="space-y-4">
                       <div className="flex justify-between items-center">
                         <Popover>
-                          <PopoverTrigger asChild>
-                            <Button 
-                              variant="outline" 
-                              className={cn(
-                                "justify-start text-left font-normal",
-                                !date && "text-muted-foreground"
-                              )}
-                            >
-                              <CalendarIcon className="mr-2 h-4 w-4" />
-                              {format(date, "PPP")}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent 
-                            className="w-auto p-0" 
-                            align="start"
-                          >
-                            <Calendar
-                              mode="single"
-                              selected={date}
-                              onSelect={(newDate) => {
-                                if (newDate) {
-                                  setDate(newDate);
-                                  fetchAttendance(class_.id, newDate);
-                                }
-                              }}
-                              initialFocus
-                              className="rounded-md border"
-                              classNames={{
-                                day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
-                                day_today: "bg-accent text-accent-foreground",
-                                cell: "h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
-                                day: "h-9 w-9 p-0 font-normal",
-                                day_range_end: "day-range-end",
-                                day_outside: "day-outside"
-                              }}
-                            />
-                          </PopoverContent>
+                          {mounted && (
+                            <>
+                              <PopoverTrigger asChild>
+                                <Button 
+                                  variant="outline" 
+                                  className={cn(
+                                    "justify-start text-left font-normal",
+                                    !date && "text-muted-foreground"
+                                  )}
+                                >
+                                  <CalendarIcon className="mr-2 h-4 w-4" />
+                                  {format(date, "PPP")}
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent 
+                                className="w-auto p-0" 
+                                align="start"
+                              >
+                                <Calendar
+                                  mode="single"
+                                  selected={date}
+                                  onSelect={(newDate) => {
+                                    if (newDate) {
+                                      setDate(newDate);
+                                      fetchAttendance(class_.id, newDate);
+                                    }
+                                  }}
+                                  initialFocus
+                                  className="rounded-md border"
+                                  classNames={{
+                                    day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
+                                    day_today: "bg-accent text-accent-foreground",
+                                    cell: "h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+                                    day: "h-9 w-9 p-0 font-normal text-foreground aria-selected:text-primary-foreground",
+                                    day_range_end: "day-range-end",
+                                    day_outside: "day-outside text-muted-foreground opacity-50",
+                                    nav_button: "text-foreground hover:bg-accent",
+                                    nav_button_previous: "absolute left-1",
+                                    nav_button_next: "absolute right-1",
+                                    caption: "text-foreground font-medium",
+                                    head_cell: "text-muted-foreground font-normal",
+                                    table: "border-collapse space-y-1",
+                                    root: "p-3"
+                                  }}
+                                />
+                              </PopoverContent>
+                            </>
+                          )}
                         </Popover>
                         <Button
                           onClick={() => submitAttendance(class_.id, class_.students)}
@@ -358,7 +380,7 @@ export default function MyClassesView({ teacher }: MyClassesViewProps) {
                                         <SelectValue />
                                       </SelectTrigger>
                                       <SelectContent>
-                                        <SelectItem value="PRESENT">Present</SelectItem>
+                                        <SelectItem value="PRESENT" >Present</SelectItem>
                                         <SelectItem value="ABSENT">Absent</SelectItem>
                                         <SelectItem value="LATE">Late</SelectItem>
                                       </SelectContent>

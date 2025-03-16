@@ -54,7 +54,7 @@ export default async function ChatsPage() {
 
   return (
     <div className="container py-6">
-      <h1 className="text-2xl font-bold mb-6">Chats</h1>
+      <h1 className="text-2xl text-white font-bold mb-6">Chats</h1>
       <ChatList chats={chats} currentUserId={session.user.id} />
     </div>
   );
