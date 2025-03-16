@@ -58,6 +58,9 @@ model User {
   student  Student?
   teacher  Teacher?
   parent   Parent?
+  notices  Notice[]
+
+  @@index([role])
 }
 
 model VerificationToken {
@@ -81,7 +84,7 @@ model Student {
   parent       Parent        @relation(fields: [parentId], references: [id])
   attendances  Attendance[]
   examResults  ExamResult[]
-  assignments  Assignment[]
+  submissions  AssignmentSubmission[]
   feePayments  FeePayment[]
 
   @@index([classId])
@@ -94,6 +97,9 @@ model Teacher {
   employeeId  String    @unique
   subjects    Subject[]
   classes     Class[]
+  assignments Assignment[]
+  timetables  TeacherTimetable[]
+  duties      TeacherDuty[]
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -116,6 +122,7 @@ model Class {
   teacher     Teacher     @relation(fields: [teacherId], references: [id])
   students    Student[]
   subjects    Subject[]
+  timetables  TeacherTimetable[]
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
@@ -132,6 +139,7 @@ model Subject {
   class       Class       @relation(fields: [classId], references: [id])
   examResults ExamResult[]
   assignments Assignment[]
+  timetables  TeacherTimetable[]
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 }
@@ -166,13 +174,34 @@ model Assignment {
   title       String
   description String?
   dueDate     DateTime
-  status      String   @default("PENDING") // PENDING, SUBMITTED, GRADED
-  studentId   String
+  teacherId   String
   subjectId   String
-  student     Student  @relation(fields: [studentId], references: [id])
+  teacher     Teacher  @relation(fields: [teacherId], references: [id])
   subject     Subject  @relation(fields: [subjectId], references: [id])
+  submissions AssignmentSubmission[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@index([teacherId])
+  @@index([subjectId])
+}
+
+model AssignmentSubmission {
+  id           String     @id @default(cuid())
+  assignmentId String
+  studentId    String
+  content      String
+  status       String     @default("SUBMITTED") // SUBMITTED, GRADED
+  grade        Float?
+  feedback     String?
+  assignment   Assignment @relation(fields: [assignmentId], references: [id])
+  student      Student    @relation(fields: [studentId], references: [id])
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@unique([assignmentId, studentId])
+  @@index([assignmentId])
+  @@index([studentId])
 }
 
 model FeePayment {
@@ -188,4 +217,86 @@ model FeePayment {
   student     Student   @relation(fields: [studentId], references: [id])
 
   @@index([studentId])
+}
+
+enum NoticeCategory {
+  GENERAL
+  STUDENT
+  TEACHER
+  PARENT
+  EXAM
+  EVENT
+}
+
+model Notice {
+  id          String         @id @default(cuid())
+  title       String
+  content     String
+  category    NoticeCategory @default(GENERAL)
+  authorId    String
+  author      User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  pinned      Boolean       @default(false)
+  expiresAt   DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([category])
+  @@index([authorId])
+}
+
+enum DayOfWeek {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+model TeacherTimetable {
+  id          String    @id @default(cuid())
+  teacherId   String
+  subjectId   String
+  classId     String
+  dayOfWeek   DayOfWeek
+  startTime   DateTime  @db.Time
+  endTime     DateTime  @db.Time
+  teacher     Teacher   @relation(fields: [teacherId], references: [id])
+  subject     Subject   @relation(fields: [subjectId], references: [id])
+  class       Class     @relation(fields: [classId], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([teacherId, dayOfWeek, startTime])
+  @@index([teacherId])
+  @@index([subjectId])
+  @@index([classId])
+}
+
+enum DutyType {
+  MORNING_ASSEMBLY
+  BREAK_TIME
+  LIBRARY
+  SPORTS
+  LAB
+  EXAM_SUPERVISION
+  OTHER
+}
+
+model TeacherDuty {
+  id          String    @id @default(cuid())
+  teacherId   String
+  type        DutyType
+  dayOfWeek   DayOfWeek
+  startTime   DateTime  @db.Time
+  endTime     DateTime  @db.Time
+  location    String?
+  notes       String?
+  teacher     Teacher   @relation(fields: [teacherId], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([teacherId, dayOfWeek, startTime])
+  @@index([teacherId])
 }

@@ -2,6 +2,10 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { Teacher } from '@prisma/client';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 
 interface Subject {
   id: string;
@@ -15,20 +19,17 @@ interface Class {
   subjects: Subject[];
 }
 
-interface Teacher {
-  id: string;
+type TeacherWithUser = Teacher & {
   user: {
-    id: string;
-    email: string;
-    firstName: string;
-    lastName: string;
-    role: string;
+    firstName: string | null;
+    lastName: string | null;
+    email: string | null;
+    image: string | null;
   };
-  classes: Class[];
-}
+};
 
 interface TeacherListProps {
-  teachers: Teacher[];
+  teachers: TeacherWithUser[];
 }
 
 export default function TeacherList({ teachers }: TeacherListProps) {
@@ -37,9 +38,9 @@ export default function TeacherList({ teachers }: TeacherListProps) {
   const filteredTeachers = teachers.filter((teacher) => {
     const searchLower = searchTerm.toLowerCase();
     return (
-      teacher.user.firstName.toLowerCase().includes(searchLower) ||
-      teacher.user.lastName.toLowerCase().includes(searchLower) ||
-      teacher.user.email.toLowerCase().includes(searchLower)
+      teacher.user.firstName?.toLowerCase().includes(searchLower) ||
+      teacher.user.lastName?.toLowerCase().includes(searchLower) ||
+      teacher.user.email?.toLowerCase().includes(searchLower)
     );
   });
 
@@ -60,70 +61,39 @@ export default function TeacherList({ teachers }: TeacherListProps) {
           No teachers found
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Name
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Email
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Classes
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredTeachers.map((teacher) => (
-                <tr key={teacher.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {teacher.user.firstName} {teacher.user.lastName}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {teacher.user.email}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-900">
-                    <div className="flex flex-wrap gap-1">
-                      {teacher.classes.map((cls) => (
-                        <span
-                          key={cls.id}
-                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
-                        >
-                          Grade {cls.grade}-{cls.section}
-                        </span>
-                      ))}
-                      {teacher.classes.length === 0 && (
-                        <span className="text-gray-500 text-sm">
-                          No classes assigned
-                        </span>
-                      )}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {filteredTeachers.map((teacher) => {
+            const firstName = teacher.user.firstName ?? '';
+            const lastName = teacher.user.lastName ?? '';
+            const fullName = `${firstName} ${lastName}`.trim() || 'Unnamed Teacher';
+            const initials = `${firstName[0] || ''}${lastName[0] || ''}`.trim() || '??';
+
+            return (
+              <Link key={teacher.id} href={`/teachers/${teacher.id}`}>
+                <Card className="hover:bg-gray-800/50 transition-colors cursor-pointer">
+                  <CardContent className="p-4 flex items-center space-x-4">
+                    <Avatar>
+                      <AvatarImage src={teacher.user.image ?? ''} alt={fullName} />
+                      <AvatarFallback>{initials}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-100 truncate">
+                        {fullName}
+                      </p>
+                      <p className="text-sm text-gray-400 truncate">
+                        {teacher.user.email ?? 'No email provided'}
+                      </p>
+                      <div className="mt-1">
+                        <Badge variant="outline" className="text-xs">
+                          ID: {teacher.employeeId}
+                        </Badge>
+                      </div>
                     </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    <div className="flex space-x-2">
-                      <Link
-                        href={`/teachers/${teacher.id}`}
-                        className="text-blue-600 hover:text-blue-900"
-                      >
-                        View
-                      </Link>
-                      <Link
-                        href={`/teachers/${teacher.id}/edit`}
-                        className="text-green-600 hover:text-green-900"
-                      >
-                        Edit
-                      </Link>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </CardContent>
+                </Card>
+              </Link>
+            );
+          })}
         </div>
       )}
     </div>
