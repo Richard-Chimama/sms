@@ -1,266 +1,126 @@
-'use client';
+import { redirect } from 'next/navigation';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/auth';
+import prisma from '@/lib/db/prisma';
+import { ExamTakingInterface } from '@/components/exams/ExamTakingInterface';
+import { ExamSubmissionStatus, QuestionType } from '@prisma/client';
+import { Session } from 'next-auth';
 
-import { useEffect, useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ExamSubmissions } from '@/components/exams/ExamSubmissions';
-import { Separator } from '@/components/ui/separator';
-import { format } from 'date-fns';
-import { Exam, Question as PrismaQuestion, QuestionType, User } from '@prisma/client';
-import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
-import { Users, Plus, Edit2, Trash2 } from 'lucide-react';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import AddQuestion from '@/components/exams/AddQuestion';
-import EditQuestion from '@/components/exams/EditQuestion';
-
-interface ExamDetailsProps {
+interface ExamPageProps {
   params: {
     id: string;
   };
 }
 
-type Question = Omit<PrismaQuestion, 'options'> & {
-  options: any | null;
-};
+export default async function ExamPage({ params }: ExamPageProps) {
+  const session = await getServerSession(authOptions) as Session;
 
-type ExamWithDetails = Omit<Exam, 'questions'> & {
-  _count: {
-    questions: number;
-    submissions: number;
+  if (!session?.user) {
+    redirect('/auth/signin');
+  }
+
+  if (session.user.role !== 'STUDENT') {
+    redirect('/dashboard');
+  }
+
+  // Get the student
+  const student = await prisma.student.findUnique({
+    where: {
+      userId: session.user.id,
+    },
+  });
+
+  if (!student) {
+    redirect('/dashboard');
+  }
+
+  // Get the exam with questions and existing submission
+  const exam = await prisma.exam.findUnique({
+    where: {
+      id: params.id,
+    },
+    include: {
+      subject: true,
+      questions: {
+        orderBy: {
+          createdAt: 'asc',
+        },
+        select: {
+          id: true,
+          text: true,
+          type: true,
+          options: true,
+          marks: true,
+        },
+      },
+      submissions: {
+        where: {
+          studentId: student.id,
+        },
+        take: 1,
+        include: {
+          answers: true,
+        },
+      },
+    },
+  });
+
+  if (!exam) {
+    redirect('/my-class');
+  }
+
+  // Check if exam is available
+  const now = new Date();
+  const startDate = new Date(exam.startDate);
+  const endDate = new Date(exam.endDate);
+
+  if (now < startDate || now > endDate) {
+    redirect('/my-class');
+  }
+
+  // Get or create submission
+  let submission = exam.submissions[0];
+  if (!submission) {
+    submission = await prisma.examSubmission.create({
+      data: {
+        examId: exam.id,
+        studentId: student.id,
+        status: ExamSubmissionStatus.IN_PROGRESS,
+        startedAt: now,
+      },
+      include: {
+        answers: true,
+      },
+    });
+  } else if (submission.status === ExamSubmissionStatus.SUBMITTED || submission.status === ExamSubmissionStatus.GRADED) {
+    redirect('/my-class');
+  }
+
+  // Transform the data to match the ExamTakingInterface props
+  const transformedSubmission = {
+    id: submission.id,
+    status: submission.status === ExamSubmissionStatus.IN_PROGRESS ? 'IN_PROGRESS' as const : 'SUBMITTED' as const,
+    answers: submission.answers?.map(answer => ({
+      questionId: answer.questionId,
+      answer: answer.answer,
+    })),
   };
-  questions: Question[];
-  passingScore: number;
-};
 
-type SubmissionWithStudent = {
-  id: string;
-  score: number;
-  submittedAt: Date;
-  student: {
-    user: User;
-    rollNumber: string;
-  };
-};
-
-export default function ExamDetailsPage({ params }: ExamDetailsProps) {
-  const [exam, setExam] = useState<ExamWithDetails | null>(null);
-  const [submissions, setSubmissions] = useState<SubmissionWithStudent[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [isAddingQuestion, setIsAddingQuestion] = useState(false);
-  const [isEditingQuestion, setIsEditingQuestion] = useState(false);
-  const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null);
-
-  const fetchExamDetails = async () => {
-    try {
-      const [examResponse, submissionsResponse] = await Promise.all([
-        fetch(`/api/exams/${params.id}`),
-        fetch(`/api/exams/${params.id}/submissions`)
-      ]);
-
-      if (!examResponse.ok || !submissionsResponse.ok) {
-        throw new Error('Failed to fetch exam details');
-      }
-
-      const examData = await examResponse.json();
-      const submissionsData = await submissionsResponse.json();
-
-      setExam(examData);
-      setSubmissions(submissionsData);
-    } catch (error) {
-      console.error('Error fetching exam details:', error);
-      toast.error('Failed to fetch exam details');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleDeleteQuestion = async (questionId: string) => {
-    try {
-      const response = await fetch(`/api/exams/${params.id}/questions/${questionId}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete question');
-      }
-
-      toast.success('Question deleted successfully');
-      fetchExamDetails();
-    } catch (error) {
-      console.error('Error deleting question:', error);
-      toast.error('Failed to delete question');
-    }
-  };
-
-  const handleGenerateSubmissions = async () => {
-    try {
-      setIsGenerating(true);
-      const response = await fetch(`/api/exams/${params.id}/test-submissions`, {
-        method: 'POST',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to generate test submissions');
-      }
-
-      await fetchExamDetails();
-      toast.success('Test submissions generated successfully');
-    } catch (error) {
-      console.error('Error generating test submissions:', error);
-      toast.error('Failed to generate test submissions');
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchExamDetails();
-  }, [params.id]);
-
-  if (!exam) return null;
+  const transformedQuestions = exam.questions.map(question => ({
+    id: question.id,
+    text: question.text,
+    type: question.type === QuestionType.MULTIPLE_CHOICE ? 'MULTIPLE_CHOICE' as const : 'SHORT_ANSWER' as const,
+    options: question.options ? JSON.parse(question.options as string) : null,
+    marks: question.marks,
+  }));
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="space-y-0.5">
-          <h2 className="text-2xl font-bold tracking-tight text-gray-100">{exam.title}</h2>
-          <p className="text-gray-400">{exam.description}</p>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            onClick={handleGenerateSubmissions}
-            disabled={isGenerating}
-            variant="secondary"
-          >
-            <Users className="mr-2 h-4 w-4" />
-            {isGenerating ? 'Generating...' : 'Generate Test Submissions'}
-          </Button>
-          <Button onClick={() => setIsAddingQuestion(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Question
-          </Button>
-        </div>
-      </div>
-
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="bg-gray-800 border-gray-700">
-          <CardHeader>
-            <CardTitle className="text-gray-100">Exam Details</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="flex justify-between">
-              <span className="text-gray-400">Type</span>
-              <span className="text-gray-100">{exam.type}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-400">Start Date</span>
-              <span className="text-gray-100">{format(new Date(exam.startDate), 'PPp')}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-400">End Date</span>
-              <span className="text-gray-100">{format(new Date(exam.endDate), 'PPp')}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-400">Questions</span>
-              <span className="text-gray-100">{exam._count.questions}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-400">Submissions</span>
-              <span className="text-gray-100">{exam._count.submissions}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-400">Passing Score</span>
-              <span className="text-gray-100">{exam.passingScore}%</span>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card className="bg-gray-800 border-gray-700">
-        <CardHeader>
-          <CardTitle className="text-gray-100">Questions</CardTitle>
-          <CardDescription>Manage exam questions</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Question</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Marks</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {exam.questions.map((question) => (
-                <TableRow key={question.id}>
-                  <TableCell className="font-medium text-gray-100">{question.text}</TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">
-                      {question.type.toLowerCase().replace('_', ' ')}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{question.marks}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          setSelectedQuestion(question);
-                          setIsEditingQuestion(true);
-                        }}
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDeleteQuestion(question.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      <Separator className="my-6 bg-gray-700" />
-
-      <ExamSubmissions submissions={submissions} passingScore={exam.passingScore} />
-
-      {isAddingQuestion && (
-        <AddQuestion
-          examId={params.id}
-          onClose={() => setIsAddingQuestion(false)}
-          onSuccess={() => {
-            setIsAddingQuestion(false);
-            fetchExamDetails();
-          }}
-        />
-      )}
-
-      {isEditingQuestion && selectedQuestion && (
-        <EditQuestion
-          examId={params.id}
-          question={selectedQuestion}
-          onClose={() => {
-            setIsEditingQuestion(false);
-            setSelectedQuestion(null);
-          }}
-          onSuccess={() => {
-            setIsEditingQuestion(false);
-            setSelectedQuestion(null);
-            fetchExamDetails();
-          }}
-        />
-      )}
+    <div className="container mx-auto py-6 max-w-4xl">
+      <ExamTakingInterface 
+        exam={exam} 
+        submission={transformedSubmission}
+        questions={transformedQuestions}
+      />
     </div>
   );
 } 

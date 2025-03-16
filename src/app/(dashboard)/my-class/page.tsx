@@ -9,6 +9,8 @@ import { Session } from 'next-auth';
 import { StudentAssignmentList } from '@/components/students/StudentAssignmentList';
 import { StudentSubjectList } from '@/components/students/StudentSubjectList';
 import { Assignment, AssignmentSubmission, Subject } from '@prisma/client';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 
 interface AssignmentWithSubmission extends Assignment {
   subject: Subject;
@@ -16,7 +18,7 @@ interface AssignmentWithSubmission extends Assignment {
 }
 
 export default async function MyClassPage() {
-  const session = (await getServerSession(authOptions)) as Session;
+  const session = await getServerSession(authOptions) as Session;
 
   if (!session?.user) {
     redirect('/auth/signin');
@@ -47,7 +49,6 @@ export default async function MyClassPage() {
                   },
                 },
               },
-              // Include assignments for each subject
               assignments: {
                 orderBy: {
                   dueDate: 'desc',
@@ -57,7 +58,6 @@ export default async function MyClassPage() {
           },
         },
       },
-      // Include submissions for this student
       submissions: {
         include: {
           assignment: {
@@ -82,6 +82,17 @@ export default async function MyClassPage() {
       submission: student.submissions.find(s => s.assignmentId === assignment.id) || null,
     }))
   );
+
+  const pendingAssignments = assignmentsWithStatus.filter(
+    (assignment) => {
+      const now = new Date();
+      const dueDate = new Date(assignment.dueDate);
+      return (
+        now <= dueDate &&
+        (!assignment.submission || assignment.submission.grade === undefined)
+      );
+    }
+  ).length;
 
   return (
     <div className="space-y-6">
@@ -120,10 +131,16 @@ export default async function MyClassPage() {
           <CardHeader>
             <CardTitle>Pending</CardTitle>
             <CardDescription>
-              {assignmentsWithStatus.filter(a => !a.submission).length} assignments
+              {pendingAssignments} assignments
             </CardDescription>
           </CardHeader>
         </Card>
+      </div>
+
+      <div className="flex justify-end">
+        <Button asChild>
+          <Link href="/student-exams">View Exams</Link>
+        </Button>
       </div>
 
       <Tabs defaultValue="subjects">

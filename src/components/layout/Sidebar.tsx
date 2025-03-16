@@ -24,10 +24,7 @@ const teacherLinks = [
 const studentLinks = [
   { href: '/dashboard', label: 'Dashboard' },
   { href: '/my-class', label: 'My Class' },
-  { href: '/assignments', label: 'Assignments' },
-  { href: '/exams', label: 'Exams' },
-  { href: '/attendance', label: 'Attendance' },
-  { href: '/fees', label: 'Fees' },
+  { href: '/student-exams', label: 'Exams' },
 ];
 
 export default function Sidebar() {
