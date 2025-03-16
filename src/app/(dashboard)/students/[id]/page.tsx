@@ -41,7 +41,7 @@ export default async function StudentProfilePage({ params }: Props) {
           subject: true,
         },
         orderBy: {
-          examDate: 'desc',
+          date: 'desc',
         },
       },
       assignments: {
@@ -55,6 +55,11 @@ export default async function StudentProfilePage({ params }: Props) {
       parent: {
         include: {
           user: true,
+        },
+      },
+      feePayments: {
+        orderBy: {
+          dueDate: 'desc',
         },
       },
     },
