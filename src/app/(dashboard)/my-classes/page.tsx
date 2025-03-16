@@ -15,10 +15,21 @@ export default async function MyClassesPage() {
     redirect('/dashboard');
   }
 
-  // Fetch teacher's classes with related data
+  // First get the teacher's ID
   const teacher = await prisma.teacher.findFirst({
     where: {
       userId: session.user.id,
+    },
+  });
+
+  if (!teacher) {
+    redirect('/dashboard');
+  }
+
+  // Then fetch teacher's classes with related data using the teacher's ID
+  const teacherWithClasses = await prisma.teacher.findUnique({
+    where: {
+      id: teacher.id,
     },
     include: {
       classes: {
@@ -37,7 +48,10 @@ export default async function MyClassesPage() {
           },
           subjects: {
             where: {
-              teacherId: session.user.id,
+              teacherId: teacher.id,
+            },
+            include: {
+              class: true,
             },
           },
         },
@@ -45,13 +59,13 @@ export default async function MyClassesPage() {
     },
   });
 
-  if (!teacher) {
+  if (!teacherWithClasses) {
     redirect('/dashboard');
   }
 
   return (
     <div className="container mx-auto py-6">
-      <MyClassesView teacher={teacher} />
+      <MyClassesView teacher={teacherWithClasses} />
     </div>
   );
 } 

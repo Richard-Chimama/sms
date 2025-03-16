@@ -112,7 +112,7 @@ export default function ClassList({ classes }: ClassListProps) {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     <div className="flex space-x-2">
                       <Link
-                        href={`/classes/${cls.id}`}
+                        href={`/admin/classes/${cls.id}`}
                         className="text-blue-600 hover:text-blue-900"
                       >
                         View

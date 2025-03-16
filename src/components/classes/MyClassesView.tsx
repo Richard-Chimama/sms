@@ -1,6 +1,6 @@
 'use client';
 
-import { Teacher, Class, Student } from '@prisma/client';
+import { Teacher, Class, Student, Subject } from '@prisma/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -14,7 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { Check, X, Clock, FileText, CalendarDays } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -22,6 +22,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import AssignmentList from '@/components/assignments/AssignmentList';
 
 type StudentWithUser = Student & {
   user: {
@@ -34,6 +35,7 @@ type StudentWithUser = Student & {
 
 type ClassWithStudents = Class & {
   students: StudentWithUser[];
+  subjects: (Subject & { class: Class })[];
 };
 
 type TeacherWithClasses = Teacher & {
@@ -59,11 +61,33 @@ type AttendanceResponse = {
   };
 };
 
+type AssignmentWithStudent = {
+  id: string;
+  title: string;
+  description: string | null;
+  dueDate: Date;
+  status: string;
+  createdAt: Date;
+  updatedAt: Date;
+  subjectId: string;
+  studentId: string;
+  student: {
+    id: string;
+    user: {
+      firstName: string | null;
+      lastName: string | null;
+      email: string | null;
+    };
+  };
+};
+
 export default function MyClassesView({ teacher }: MyClassesViewProps) {
   const [activeTab, setActiveTab] = useState<'attendance' | 'assignments'>('attendance');
   const [date, setDate] = useState<Date>(new Date());
   const [attendanceMap, setAttendanceMap] = useState<Record<string, StudentAttendance>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [assignments, setAssignments] = useState<AssignmentWithStudent[]>([]);
+  const [selectedSubject, setSelectedSubject] = useState<string>('');
 
   // Function to fetch existing attendance for a class on a specific date
   const fetchAttendance = async (classId: string, selectedDate: Date) => {
@@ -137,6 +161,30 @@ export default function MyClassesView({ teacher }: MyClassesViewProps) {
     }));
   };
 
+  // Effect to fetch assignments when subject changes
+  useEffect(() => {
+    if (selectedSubject) {
+      fetchAssignments(selectedSubject);
+    }
+  }, [selectedSubject]);
+
+  // Function to fetch assignments for a subject
+  const fetchAssignments = async (subjectId: string) => {
+    try {
+      const response = await fetch(`/api/subjects/${subjectId}/assignments`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch assignments');
+      }
+
+      const data = await response.json();
+      setAssignments(data);
+    } catch (error) {
+      console.error('Error fetching assignments:', error);
+      toast.error('Failed to fetch assignments');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -166,7 +214,10 @@ export default function MyClassesView({ teacher }: MyClassesViewProps) {
                       </p>
                     </div>
                     <div className="flex items-center gap-4">
-                      <Tabs value={activeTab} onValueChange={(value: any) => setActiveTab(value)}>
+                      <Tabs
+                        value={activeTab}
+                        onValueChange={(value) => setActiveTab(value as 'attendance' | 'assignments')}
+                      >
                         <TabsList>
                           <TabsTrigger value="attendance">
                             <CalendarDays className="w-4 h-4 mr-2" />
@@ -292,8 +343,43 @@ export default function MyClassesView({ teacher }: MyClassesViewProps) {
                   )}
 
                   {activeTab === 'assignments' && (
-                    <div>
-                      {/* Assignments content */}
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center">
+                        <Select
+                          value={selectedSubject}
+                          onValueChange={(value) => {
+                            setSelectedSubject(value);
+                            setAssignments([]); // Reset assignments when subject changes
+                          }}
+                        >
+                          <SelectTrigger className="w-[200px]">
+                            <SelectValue placeholder="Select a subject" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {class_.subjects
+                              .filter((subject) => subject.classId === class_.id)
+                              .map((subject) => (
+                                <SelectItem key={subject.id} value={subject.id}>
+                                  {subject.name}
+                                </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {selectedSubject ? (
+                        <AssignmentList
+                          subjectId={selectedSubject}
+                          assignments={assignments}
+                        />
+                      ) : (
+                        <div className="text-center py-8 text-gray-500">
+                          {class_.subjects.filter((subject) => subject.classId === class_.id).length === 0 
+                            ? "No subjects available for this class"
+                            : "Select a subject to view assignments"
+                          }
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
