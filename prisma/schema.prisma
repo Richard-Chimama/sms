@@ -59,6 +59,7 @@ model User {
   teacher  Teacher?
   parent   Parent?
   notices  Notice[]
+  noticeComments NoticeComment[]
   chatParticipants ChatParticipant[]
   messages         Message[]
   notifications    Notification[]    @relation("UserNotifications")
@@ -245,8 +246,23 @@ model Notice {
   expiresAt   DateTime?
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
+  comments    NoticeComment[]
 
   @@index([category])
+  @@index([authorId])
+}
+
+model NoticeComment {
+  id        String   @id @default(cuid())
+  content   String
+  noticeId  String
+  authorId  String
+  notice    Notice   @relation(fields: [noticeId], references: [id], onDelete: Cascade)
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([noticeId])
   @@index([authorId])
 }
 

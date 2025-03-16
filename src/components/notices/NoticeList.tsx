@@ -7,6 +7,20 @@ import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { PinIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { toast } from 'sonner';
+import { useSession } from 'next-auth/react';
+
+type NoticeComment = {
+  id: string;
+  content: string;
+  createdAt: string | Date;
+  author: {
+    firstName: string | null;
+    lastName: string | null;
+  };
+};
 
 type Notice = {
   id: string;
@@ -20,6 +34,7 @@ type Notice = {
     firstName: string | null;
     lastName: string | null;
   };
+  comments?: NoticeComment[];
 };
 
 type NoticeListProps = {
@@ -30,9 +45,12 @@ type NoticeListProps = {
 };
 
 export default function NoticeList({ notices: initialNotices, userRole, category, activeOnly = true }: NoticeListProps) {
+  const { data: session } = useSession();
   const [notices, setNotices] = useState<Notice[]>(initialNotices);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [commentInputs, setCommentInputs] = useState<{ [key: string]: string }>({});
+  const [submittingComment, setSubmittingComment] = useState<{ [key: string]: boolean }>({});
 
   useEffect(() => {
     setNotices(initialNotices);
@@ -64,6 +82,51 @@ export default function NoticeList({ notices: initialNotices, userRole, category
 
     fetchNotices();
   }, [category, activeOnly, initialNotices]);
+
+  const handleCommentChange = (noticeId: string, value: string) => {
+    setCommentInputs((prev) => ({ ...prev, [noticeId]: value }));
+  };
+
+  const handleSubmitComment = async (noticeId: string) => {
+    const content = commentInputs[noticeId];
+    if (!content?.trim()) {
+      toast.error('Comment cannot be empty');
+      return;
+    }
+
+    try {
+      setSubmittingComment((prev) => ({ ...prev, [noticeId]: true }));
+      const response = await fetch(`/api/notices/${noticeId}/comments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ content }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to post comment');
+      }
+
+      const newComment = await response.json();
+      setNotices((prevNotices) =>
+        prevNotices.map((notice) =>
+          notice.id === noticeId
+            ? {
+                ...notice,
+                comments: [newComment, ...(notice.comments || [])],
+              }
+            : notice
+        )
+      );
+      setCommentInputs((prev) => ({ ...prev, [noticeId]: '' }));
+      toast.success('Comment posted successfully');
+    } catch (error) {
+      toast.error('Failed to post comment');
+    } finally {
+      setSubmittingComment((prev) => ({ ...prev, [noticeId]: false }));
+    }
+  };
 
   if (loading) {
     return (
@@ -135,6 +198,42 @@ export default function NoticeList({ notices: initialNotices, userRole, category
           </CardHeader>
           <CardContent>
             <div className="whitespace-pre-wrap">{notice.content}</div>
+            
+            {/* Comments section */}
+            <div className="mt-4 space-y-4">
+              <div className="border-t pt-4">
+                <h4 className="text-sm font-semibold mb-2">Comments</h4>
+                {session?.user && (
+                  <div className="flex gap-2 mb-4">
+                    <Textarea
+                      placeholder="Write a comment..."
+                      value={commentInputs[notice.id] || ''}
+                      onChange={(e) => handleCommentChange(notice.id, e.target.value)}
+                      className="min-h-[60px]"
+                    />
+                    <Button
+                      onClick={() => handleSubmitComment(notice.id)}
+                      disabled={submittingComment[notice.id]}
+                    >
+                      {submittingComment[notice.id] ? 'Posting...' : 'Post'}
+                    </Button>
+                  </div>
+                )}
+                <div className="space-y-2">
+                  {notice.comments?.map((comment) => (
+                    <div key={comment.id} className="bg-muted p-3 rounded-lg">
+                      <div className="flex justify-between items-start">
+                        <p className="text-sm text-muted-foreground">
+                          {comment.author.firstName} {comment.author.lastName} ·{' '}
+                          {format(new Date(comment.createdAt), 'PPP')}
+                        </p>
+                      </div>
+                      <p className="mt-1 text-sm">{comment.content}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </CardContent>
         </Card>
       ))}

@@ -45,6 +45,19 @@ export default async function NoticesPage() {
           lastName: true,
         },
       },
+      comments: {
+        include: {
+          author: {
+            select: {
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      },
     },
     orderBy: [
       { pinned: 'desc' },
@@ -56,7 +69,7 @@ export default async function NoticesPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-100">Notice Board</h1>
-        {session.user.role === 'ADMIN' && <CreateNoticeButton />}
+        {['ADMIN', 'TEACHER'].includes(session.user.role) && <CreateNoticeButton />}
       </div>
 
       <NoticeList notices={notices} userRole={session.user.role} />

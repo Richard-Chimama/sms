@@ -37,6 +37,7 @@ import { z } from 'zod';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import type { Session } from 'next-auth';
 
 const createNoticeSchema = z.object({
   title: z.string().min(1, 'Title is required'),
@@ -49,7 +50,7 @@ const createNoticeSchema = z.object({
 type CreateNoticeForm = z.infer<typeof createNoticeSchema>;
 
 export default function CreateNoticeButton() {
-  const { data: session } = useSession();
+  const { data: session } = useSession() as { data: Session | null };
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
@@ -92,9 +93,14 @@ export default function CreateNoticeButton() {
     }
   };
 
-  if (!session?.user || session.user.role !== 'ADMIN') {
+  if (!session?.user || !['ADMIN', 'TEACHER'].includes(session.user.role)) {
     return null;
   }
+
+  const isAdmin = session.user.role === 'ADMIN';
+  const allowedCategories = isAdmin 
+    ? Object.values(NoticeCategory)
+    : [NoticeCategory.GENERAL, NoticeCategory.STUDENT];
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -156,37 +162,41 @@ export default function CreateNoticeButton() {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {Object.values(NoticeCategory).map((category) => (
-                        <SelectItem key={category} value={category}>
-                          {category}
-                        </SelectItem>
-                      ))}
+                      {Object.values(NoticeCategory)
+                        .filter(category => allowedCategories.includes(category))
+                        .map((category) => (
+                          <SelectItem key={category} value={category}>
+                            {category}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="pinned"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                  <div className="space-y-0.5">
-                    <FormLabel>Pin Notice</FormLabel>
-                    <DialogDescription>
-                      Pinned notices will always appear at the top
-                    </DialogDescription>
-                  </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
+            {isAdmin && (
+              <FormField
+                control={form.control}
+                name="pinned"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                    <div className="space-y-0.5">
+                      <FormLabel>Pin Notice</FormLabel>
+                      <DialogDescription>
+                        Pinned notices will always appear at the top
+                      </DialogDescription>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            )}
             <FormField
               control={form.control}
               name="expiresAt"

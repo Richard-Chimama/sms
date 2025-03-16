@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/db/prisma';
 import { z } from 'zod';
 import { NoticeCategory } from '@prisma/client';
+import { Session } from 'next-auth';
 
 const roleToCategory = {
   ADMIN: NoticeCategory.GENERAL,
@@ -22,9 +23,9 @@ const createNoticeSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = (await getServerSession(authOptions)) as Session;
 
-    if (!session?.user || session.user.role !== 'ADMIN') {
+    if (!session?.user || !['ADMIN', 'TEACHER'].includes(session.user.role)) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -39,7 +40,7 @@ export async function POST(req: NextRequest) {
         title: validatedData.title,
         content: validatedData.content,
         category: validatedData.category,
-        pinned: validatedData.pinned,
+        pinned: session.user.role === 'ADMIN' ? validatedData.pinned : false,
         expiresAt: validatedData.expiresAt ? new Date(validatedData.expiresAt) : null,
         author: {
           connect: {
@@ -66,7 +67,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.error('Failed to create notice:', error);
+    console.error('[NOTICES_POST]', error);
     return NextResponse.json(
       { error: 'Failed to create notice' },
       { status: 500 }
@@ -76,7 +77,7 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = (await getServerSession(authOptions)) as Session;
 
     if (!session?.user) {
       return NextResponse.json(
