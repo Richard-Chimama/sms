@@ -5,6 +5,13 @@ import prisma from '@/lib/db/prisma';
 import { z } from 'zod';
 import { NoticeCategory } from '@prisma/client';
 
+const roleToCategory = {
+  ADMIN: NoticeCategory.GENERAL,
+  STUDENT: NoticeCategory.STUDENT,
+  TEACHER: NoticeCategory.TEACHER,
+  PARENT: NoticeCategory.PARENT,
+} as const;
+
 const createNoticeSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   content: z.string().min(1, 'Content is required'),
@@ -34,7 +41,11 @@ export async function POST(req: NextRequest) {
         category: validatedData.category,
         pinned: validatedData.pinned,
         expiresAt: validatedData.expiresAt ? new Date(validatedData.expiresAt) : null,
-        authorId: session.user.id,
+        author: {
+          connect: {
+            id: session.user.id
+          }
+        }
       },
       include: {
         author: {
@@ -75,13 +86,15 @@ export async function GET(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url);
-    const category = searchParams.get('category') as NoticeCategory | null;
+    const categoryParam = searchParams.get('category');
+    const category = categoryParam ? (NoticeCategory[categoryParam as keyof typeof NoticeCategory] || null) : null;
+    const userCategory = roleToCategory[session.user.role as keyof typeof roleToCategory] || NoticeCategory.GENERAL;
 
     const notices = await prisma.notice.findMany({
       where: {
         OR: [
           { category: NoticeCategory.GENERAL },
-          { category: session.user.role.toUpperCase() as NoticeCategory },
+          { category: userCategory },
           ...(session.user.role === 'ADMIN' 
             ? [{ category: { in: [
                 NoticeCategory.STUDENT,

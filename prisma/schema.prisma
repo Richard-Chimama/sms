@@ -255,48 +255,46 @@ enum DayOfWeek {
 }
 
 model TeacherTimetable {
-  id          String    @id @default(cuid())
-  teacherId   String
-  subjectId   String
-  classId     String
-  dayOfWeek   DayOfWeek
-  startTime   DateTime  @db.Time
-  endTime     DateTime  @db.Time
-  teacher     Teacher   @relation(fields: [teacherId], references: [id])
-  subject     Subject   @relation(fields: [subjectId], references: [id])
-  class       Class     @relation(fields: [classId], references: [id])
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id        String    @id @default(cuid())
+  teacherId String
+  classId   String
+  subjectId String
+  dayOfWeek DayOfWeek
+  startTime DateTime  @db.Time()
+  endTime   DateTime  @db.Time()
+  teacher   Teacher   @relation(fields: [teacherId], references: [id])
+  class     Class     @relation(fields: [classId], references: [id])
+  subject   Subject   @relation(fields: [subjectId], references: [id])
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
-  @@unique([teacherId, dayOfWeek, startTime])
+  @@unique([teacherId, classId, subjectId, dayOfWeek, startTime])
   @@index([teacherId])
-  @@index([subjectId])
   @@index([classId])
+  @@index([subjectId])
 }
 
 enum DutyType {
   MORNING_ASSEMBLY
-  BREAK_TIME
-  LIBRARY
-  SPORTS
-  LAB
+  LUNCH_BREAK
+  EVENING_GAMES
   EXAM_SUPERVISION
-  OTHER
+  EVENT_COORDINATION
 }
 
 model TeacherDuty {
-  id          String    @id @default(cuid())
-  teacherId   String
-  type        DutyType
-  dayOfWeek   DayOfWeek
-  startTime   DateTime  @db.Time
-  endTime     DateTime  @db.Time
-  location    String?
-  notes       String?
-  teacher     Teacher   @relation(fields: [teacherId], references: [id])
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id        String    @id @default(cuid())
+  teacherId String
+  type      DutyType
+  date      DateTime
+  startTime DateTime  @db.Time()
+  endTime   DateTime  @db.Time()
+  notes     String?
+  teacher   Teacher   @relation(fields: [teacherId], references: [id])
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
-  @@unique([teacherId, dayOfWeek, startTime])
+  @@unique([teacherId, date, startTime])
   @@index([teacherId])
+  @@index([type])
 }

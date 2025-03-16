@@ -1,24 +1,24 @@
-import { AuthOptions, DefaultSession } from 'next-auth';
+import { NextAuthOptions } from 'next-auth';
+import { JWT } from 'next-auth/jwt';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import prisma from '@/lib/db/prisma';
 import { compare } from 'bcryptjs';
+import { User } from '@prisma/client';
 
 type Role = 'ADMIN' | 'TEACHER' | 'STUDENT' | 'PARENT';
 
 // Extend the built-in session types
 declare module 'next-auth' {
-  interface User {
-    id: string;
-    role: Role;
-    name: string;
-  }
-  
   interface Session {
     user: {
       id: string;
+      email?: string | null;
+      name?: string | null;
       role: Role;
-      name: string;
-    } & DefaultSession['user'];
+      firstName?: string | null;
+      lastName?: string | null;
+      image?: string | null;
+    }
   }
 }
 
@@ -26,11 +26,35 @@ declare module 'next-auth/jwt' {
   interface JWT {
     id: string;
     role: Role;
-    name: string;
+    firstName?: string | null;
+    lastName?: string | null;
   }
 }
 
-export const authOptions: AuthOptions = {
+export const authOptions: NextAuthOptions = {
+  session: {
+    strategy: 'jwt',
+  },
+  callbacks: {
+    async jwt({ token, user }: { token: JWT; user: any }) {
+      if (user) {
+        token.id = user.id;
+        token.role = user.role;
+        token.firstName = user.firstName;
+        token.lastName = user.lastName;
+      }
+      return token;
+    },
+    async session({ session, token }: { session: any; token: JWT }) {
+      if (token) {
+        session.user.id = token.id;
+        session.user.role = token.role;
+        session.user.firstName = token.firstName;
+        session.user.lastName = token.lastName;
+      }
+      return session;
+    },
+  },
   providers: [
     CredentialsProvider({
       name: 'Credentials',
@@ -40,50 +64,37 @@ export const authOptions: AuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          throw new Error('Invalid credentials');
+          throw new Error('Please enter your email and password');
         }
 
         const user = await prisma.user.findUnique({
           where: {
-            email: credentials.email
-          }
+            email: credentials.email,
+          },
         });
 
-        if (!user || !user.password || !(await compare(credentials.password, user.password))) {
-          throw new Error('Invalid credentials');
+        if (!user || !user.password) {
+          throw new Error('No user found with this email');
+        }
+
+        const isPasswordValid = await compare(credentials.password, user.password);
+
+        if (!isPasswordValid) {
+          throw new Error('Invalid password');
         }
 
         return {
           id: user.id,
           email: user.email,
+          name: user.name,
           role: user.role as Role,
-          name: `${user.firstName} ${user.lastName}`,
+          firstName: user.firstName,
+          lastName: user.lastName,
         };
       }
     })
   ],
-  callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-        token.role = user.role;
-        token.name = user.name;
-      }
-      return token;
-    },
-    async session({ session, token }) {
-      if (token && session.user) {
-        session.user.id = token.id;
-        session.user.role = token.role;
-        session.user.name = token.name;
-      }
-      return session;
-    }
-  },
   pages: {
     signIn: '/auth/signin',
-  },
-  session: {
-    strategy: 'jwt',
   },
 }; 

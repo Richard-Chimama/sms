@@ -4,19 +4,29 @@ import prisma from '@/lib/db/prisma';
 import NoticeList from '@/components/notices/NoticeList';
 import CreateNoticeButton from '@/components/notices/CreateNoticeButton';
 import { NoticeCategory } from '@prisma/client';
+import { redirect } from 'next/navigation';
+
+const roleToCategory = {
+  ADMIN: NoticeCategory.GENERAL,
+  STUDENT: NoticeCategory.STUDENT,
+  TEACHER: NoticeCategory.TEACHER,
+  PARENT: NoticeCategory.PARENT,
+} as const;
 
 export default async function NoticesPage() {
   const session = await getServerSession(authOptions);
 
   if (!session?.user) {
-    return null;
+    redirect('/auth/signin');
   }
+
+  const userCategory = roleToCategory[session.user.role as keyof typeof roleToCategory] || NoticeCategory.GENERAL;
 
   const notices = await prisma.notice.findMany({
     where: {
       OR: [
         { category: NoticeCategory.GENERAL },
-        { category: session.user.role.toUpperCase() as NoticeCategory },
+        { category: userCategory },
         ...(session.user.role === 'ADMIN' 
           ? [{ category: { in: [
               NoticeCategory.STUDENT,

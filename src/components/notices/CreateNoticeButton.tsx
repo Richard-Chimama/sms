@@ -36,6 +36,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
 
 const createNoticeSchema = z.object({
   title: z.string().min(1, 'Title is required'),
@@ -51,6 +52,7 @@ export default function CreateNoticeButton() {
   const { data: session } = useSession();
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const router = useRouter();
 
   const form = useForm<CreateNoticeForm>({
     resolver: zodResolver(createNoticeSchema),
@@ -82,6 +84,7 @@ export default function CreateNoticeButton() {
       toast.success('Notice created successfully');
       form.reset();
       setOpen(false);
+      router.refresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to create notice');
     } finally {
@@ -114,7 +117,7 @@ export default function CreateNoticeButton() {
                 <FormItem>
                   <FormLabel>Title</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Input placeholder="Enter notice title" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -127,7 +130,11 @@ export default function CreateNoticeButton() {
                 <FormItem>
                   <FormLabel>Content</FormLabel>
                   <FormControl>
-                    <Textarea {...field} />
+                    <Textarea 
+                      placeholder="Enter notice content"
+                      className="min-h-[100px]"
+                      {...field} 
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -167,9 +174,9 @@ export default function CreateNoticeButton() {
                 <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
                   <div className="space-y-0.5">
                     <FormLabel>Pin Notice</FormLabel>
-                    <FormDescription>
+                    <DialogDescription>
                       Pinned notices will always appear at the top
-                    </FormDescription>
+                    </DialogDescription>
                   </div>
                   <FormControl>
                     <Switch
