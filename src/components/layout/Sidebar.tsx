@@ -45,10 +45,10 @@ export default function Sidebar() {
     : studentLinks;
 
   return (
-    <nav className="w-64 bg-white shadow-lg h-screen">
-      <div className="p-4">
-        <h2 className="text-xl font-bold text-gray-800">School MS</h2>
-        <p className="text-sm text-gray-600">{session.user.name}</p>
+    <nav className="w-64 bg-gray-800 shadow-lg h-screen border-r border-gray-700">
+      <div className="p-4 border-b border-gray-700">
+        <h2 className="text-xl font-bold text-gray-100">School MS</h2>
+        <p className="text-sm text-gray-400">{session.user.name}</p>
       </div>
       <ul className="space-y-2 p-4">
         {links.map((link) => (
@@ -57,8 +57,8 @@ export default function Sidebar() {
               href={link.href}
               className={`block px-4 py-2 rounded-lg transition-colors ${
                 pathname === link.href
-                  ? 'bg-blue-500 text-white'
-                  : 'text-gray-600 hover:bg-blue-50'
+                  ? 'bg-blue-600 text-gray-100'
+                  : 'text-gray-300 hover:bg-gray-700 hover:text-gray-100'
               }`}
             >
               {link.label}

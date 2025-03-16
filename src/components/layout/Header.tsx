@@ -11,11 +11,11 @@ export default function Header() {
   if (!session?.user) return null;
 
   return (
-    <header className="bg-white shadow-sm">
+    <header className="bg-gray-800 border-b border-gray-700">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
-            <Link href="/dashboard" className="text-xl font-bold text-gray-800">
+            <Link href="/dashboard" className="text-xl font-bold text-gray-100">
               School MS
             </Link>
           </div>
@@ -23,7 +23,7 @@ export default function Header() {
           <div className="flex items-center space-x-4">
             <button
               type="button"
-              className="p-2 rounded-full text-gray-600 hover:bg-gray-100"
+              className="p-2 rounded-full text-gray-300 hover:bg-gray-700 hover:text-gray-100"
             >
               <span className="sr-only">View notifications</span>
               <svg
@@ -44,7 +44,7 @@ export default function Header() {
             <div className="relative">
               <button
                 type="button"
-                className="flex items-center space-x-2 text-gray-600 hover:text-gray-800"
+                className="flex items-center space-x-2 text-gray-300 hover:text-gray-100"
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
               >
                 <span className="text-sm font-medium">{session.user.name}</span>
@@ -66,7 +66,7 @@ export default function Header() {
               </button>
 
               {isMenuOpen && (
-                <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5">
+                <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-gray-800 ring-1 ring-black ring-opacity-5 border border-gray-700">
                   <div
                     className="py-1"
                     role="menu"
@@ -75,7 +75,7 @@ export default function Header() {
                   >
                     <Link
                       href="/profile"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      className="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-gray-100"
                       role="menuitem"
                       onClick={() => setIsMenuOpen(false)}
                     >
@@ -83,14 +83,14 @@ export default function Header() {
                     </Link>
                     <Link
                       href="/settings"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      className="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-gray-100"
                       role="menuitem"
                       onClick={() => setIsMenuOpen(false)}
                     >
                       Settings
                     </Link>
                     <button
-                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      className="block w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-gray-100"
                       role="menuitem"
                       onClick={() => signOut()}
                     >

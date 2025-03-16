@@ -10,11 +10,11 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+      <h1 className="text-2xl font-bold text-gray-100">Dashboard</h1>
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
         {/* Summary Cards */}
-        <div className="bg-white overflow-hidden shadow rounded-lg">
+        <div className="bg-gray-800 overflow-hidden shadow rounded-lg border border-gray-700">
           <div className="p-5">
             <div className="flex items-center">
               <div className="flex-shrink-0">
@@ -34,21 +34,21 @@ export default async function DashboardPage() {
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">
+                  <dt className="text-sm font-medium text-gray-400 truncate">
                     {role === 'ADMIN'
                       ? 'Total Students'
                       : role === 'TEACHER'
                       ? 'My Students'
                       : 'My Classes'}
                   </dt>
-                  <dd className="text-lg font-medium text-gray-900">0</dd>
+                  <dd className="text-lg font-medium text-gray-100">0</dd>
                 </dl>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="bg-white overflow-hidden shadow rounded-lg">
+        <div className="bg-gray-800 overflow-hidden shadow rounded-lg border border-gray-700">
           <div className="p-5">
             <div className="flex items-center">
               <div className="flex-shrink-0">
@@ -68,21 +68,21 @@ export default async function DashboardPage() {
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">
+                  <dt className="text-sm font-medium text-gray-400 truncate">
                     {role === 'ADMIN'
                       ? 'Total Classes'
                       : role === 'TEACHER'
                       ? 'Active Classes'
                       : 'Assignments Due'}
                   </dt>
-                  <dd className="text-lg font-medium text-gray-900">0</dd>
+                  <dd className="text-lg font-medium text-gray-100">0</dd>
                 </dl>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="bg-white overflow-hidden shadow rounded-lg">
+        <div className="bg-gray-800 overflow-hidden shadow rounded-lg border border-gray-700">
           <div className="p-5">
             <div className="flex items-center">
               <div className="flex-shrink-0">
@@ -102,14 +102,14 @@ export default async function DashboardPage() {
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">
+                  <dt className="text-sm font-medium text-gray-400 truncate">
                     {role === 'ADMIN'
                       ? 'Upcoming Events'
                       : role === 'TEACHER'
                       ? 'Classes Today'
                       : 'Attendance Rate'}
                   </dt>
-                  <dd className="text-lg font-medium text-gray-900">
+                  <dd className="text-lg font-medium text-gray-100">
                     {role === 'STUDENT' ? '100%' : '0'}
                   </dd>
                 </dl>
@@ -118,7 +118,7 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        <div className="bg-white overflow-hidden shadow rounded-lg">
+        <div className="bg-gray-800 overflow-hidden shadow rounded-lg border border-gray-700">
           <div className="p-5">
             <div className="flex items-center">
               <div className="flex-shrink-0">
@@ -138,14 +138,14 @@ export default async function DashboardPage() {
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">
+                  <dt className="text-sm font-medium text-gray-400 truncate">
                     {role === 'ADMIN'
                       ? 'Active Teachers'
                       : role === 'TEACHER'
                       ? 'Assignments to Grade'
                       : 'Next Exam'}
                   </dt>
-                  <dd className="text-lg font-medium text-gray-900">0</dd>
+                  <dd className="text-lg font-medium text-gray-100">0</dd>
                 </dl>
               </div>
             </div>
@@ -154,13 +154,13 @@ export default async function DashboardPage() {
       </div>
 
       {/* Recent Activity */}
-      <div className="bg-white shadow rounded-lg">
+      <div className="bg-gray-800 shadow rounded-lg border border-gray-700">
         <div className="px-4 py-5 sm:px-6">
-          <h2 className="text-lg font-medium text-gray-900">Recent Activity</h2>
+          <h2 className="text-lg font-medium text-gray-100">Recent Activity</h2>
         </div>
-        <div className="border-t border-gray-200">
+        <div className="border-t border-gray-700">
           <div className="px-4 py-5 sm:p-6">
-            <p className="text-gray-500 text-sm">No recent activity</p>
+            <p className="text-gray-400 text-sm">No recent activity</p>
           </div>
         </div>
       </div>

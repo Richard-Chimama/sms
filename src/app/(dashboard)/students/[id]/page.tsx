@@ -39,37 +39,46 @@ export default function StudentPage({ params }: StudentPageProps) {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center">Loading...</div>
+      <div className="min-h-screen bg-gray-900 text-gray-100">
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">
+            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-400 border-r-transparent"></div>
+            <p className="mt-2 text-gray-400">Loading...</p>
+          </div>
+        </div>
       </div>
     );
   }
 
   if (!student) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center text-red-600">Student not found</div>
+      <div className="min-h-screen bg-gray-900 text-gray-100">
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center text-red-400">Student not found</div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Student Profile</h1>
-        <div className="space-x-4">
-          <EditStudentButton student={student} />
-          <DeleteStudentButton student={student} />
+    <div className="min-h-screen bg-gray-900 text-gray-100">
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold text-gray-100">Student Profile</h1>
+          <div className="space-x-4">
+            <EditStudentButton student={student} />
+            <DeleteStudentButton student={student} />
+          </div>
         </div>
+
+        {error && (
+          <div className="bg-red-900/50 border border-red-700 text-red-400 px-4 py-3 rounded-lg mb-6">
+            {error}
+          </div>
+        )}
+
+        <StudentProfile student={student} />
       </div>
-
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg mb-6">
-          {error}
-        </div>
-      )}
-
-      <StudentProfile student={student} />
     </div>
   );
 } 
