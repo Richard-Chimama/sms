@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import {
   Card,
   CardContent,
@@ -12,97 +13,115 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { FileText, CheckCircle, AlertCircle, Eye } from 'lucide-react';
-import Link from 'next/link';
-import { AssignmentSubmission } from '@prisma/client';
+import { Assignment, Subject, AssignmentSubmission } from '@prisma/client';
+import { SubmitAssignmentDialog } from '@/components/assignments/SubmitAssignmentDialog';
+import { toast } from 'sonner';
 
-interface SubmissionWithDetails extends AssignmentSubmission {
-  assignment: {
-    id: string;
-    title: string;
-    description: string | null;
-    dueDate: Date;
-    subject: {
-      name: string;
-    };
-  };
+interface AssignmentWithSubmission extends Assignment {
+  subject: Subject;
+  submission: AssignmentSubmission | null;
 }
 
 interface StudentAssignmentListProps {
-  submissions: SubmissionWithDetails[];
+  assignments: AssignmentWithSubmission[];
 }
 
-export function StudentAssignmentList({ submissions }: StudentAssignmentListProps) {
+export function StudentAssignmentList({ assignments }: StudentAssignmentListProps) {
+  const [selectedAssignment, setSelectedAssignment] = useState<AssignmentWithSubmission | null>(null);
+  const [isSubmitDialogOpen, setIsSubmitDialogOpen] = useState(false);
+
+  const handleViewAssignment = (assignment: AssignmentWithSubmission) => {
+    setSelectedAssignment(assignment);
+    setIsSubmitDialogOpen(true);
+  };
+
+  const handleSubmitSuccess = () => {
+    toast.success('Assignment submitted successfully!');
+    // Refresh the page to show updated status
+    window.location.reload();
+  };
+
+  const handleSubmitError = (error: string) => {
+    toast.error(error || 'Failed to submit assignment. Please try again.');
+  };
+
   return (
-    <div className="space-y-4">
-      {submissions.map((submission) => (
-        <Card key={submission.id}>
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {assignments.map((assignment) => (
+        <Card key={assignment.id}>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>{submission.assignment.title}</CardTitle>
-                <CardDescription>
-                  {submission.assignment.subject.name}
-                </CardDescription>
-              </div>
+            <CardTitle className="flex items-center justify-between">
+              <span>{assignment.title}</span>
               <Badge
                 variant={
-                  submission.status === 'GRADED'
+                  assignment.submission?.status === 'GRADED'
                     ? 'default'
-                    : submission.status === 'SUBMITTED'
+                    : assignment.submission?.status === 'SUBMITTED'
                     ? 'secondary'
-                    : 'outline'
+                    : 'destructive'
                 }
               >
-                {submission.status === 'GRADED' && (
-                  <CheckCircle className="mr-2 h-4 w-4" />
-                )}
-                {submission.status === 'SUBMITTED' && (
-                  <FileText className="mr-2 h-4 w-4" />
-                )}
-                {submission.status === 'PENDING' && (
-                  <AlertCircle className="mr-2 h-4 w-4" />
-                )}
-                {submission.status}
+                {assignment.submission?.status === 'GRADED'
+                  ? 'Graded'
+                  : assignment.submission?.status === 'SUBMITTED'
+                  ? 'Submitted'
+                  : 'Pending'}
               </Badge>
-            </div>
+            </CardTitle>
+            <CardDescription>{assignment.subject.name}</CardDescription>
           </CardHeader>
           <CardContent>
-            {submission.assignment.description && (
-              <p className="text-sm text-muted-foreground mb-4">
-                {submission.assignment.description}
+            <p className="text-sm text-muted-foreground mb-2">
+              {assignment.description || 'No description provided'}
+            </p>
+            <p className="text-sm">
+              Due: {format(new Date(assignment.dueDate), 'PPP')}
+            </p>
+            {assignment.submission?.grade !== undefined && (
+              <p className="text-sm mt-2">
+                Grade: {assignment.submission.grade}
               </p>
             )}
-            <div className="flex items-center gap-4 text-sm">
-              <div>
-                <p className="font-medium">Due Date</p>
-                <p className="text-muted-foreground">
-                  {format(new Date(submission.assignment.dueDate), 'PPp')}
-                </p>
-              </div>
-              {submission.grade && (
-                <div>
-                  <p className="font-medium">Grade</p>
-                  <p className="text-muted-foreground">{submission.grade}</p>
-                </div>
-              )}
-              {submission.feedback && (
-                <div>
-                  <p className="font-medium">Feedback</p>
-                  <p className="text-muted-foreground">{submission.feedback}</p>
-                </div>
-              )}
-            </div>
+            {assignment.submission?.feedback && (
+              <p className="text-sm mt-2">
+                Feedback: {assignment.submission.feedback}
+              </p>
+            )}
           </CardContent>
-          <CardFooter>
-            <Button asChild variant="outline" size="sm">
-              <Link href={`/assignments/${submission.assignment.id}`}>
-                <Eye className="mr-2 h-4 w-4" />
-                View Details
-              </Link>
+          <CardFooter className="flex justify-between">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleViewAssignment(assignment)}
+            >
+              <Eye className="w-4 h-4 mr-2" />
+              View Details
             </Button>
+            {!assignment.submission && (
+              <Button
+                size="sm"
+                onClick={() => handleViewAssignment(assignment)}
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                Submit
+              </Button>
+            )}
           </CardFooter>
         </Card>
       ))}
+
+      {selectedAssignment && (
+        <SubmitAssignmentDialog
+          assignment={{
+            ...selectedAssignment,
+            description: selectedAssignment.description || '',
+          }}
+          open={isSubmitDialogOpen}
+          onOpenChange={setIsSubmitDialogOpen}
+          onSuccess={handleSubmitSuccess}
+          onError={handleSubmitError}
+        />
+      )}
     </div>
   );
 } 

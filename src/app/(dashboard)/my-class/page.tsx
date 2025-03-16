@@ -8,6 +8,12 @@ import { format } from 'date-fns';
 import { Session } from 'next-auth';
 import { StudentAssignmentList } from '@/components/students/StudentAssignmentList';
 import { StudentSubjectList } from '@/components/students/StudentSubjectList';
+import { Assignment, AssignmentSubmission, Subject } from '@prisma/client';
+
+interface AssignmentWithSubmission extends Assignment {
+  subject: Subject;
+  submission: AssignmentSubmission | null;
+}
 
 export default async function MyClassPage() {
   const session = (await getServerSession(authOptions)) as Session;
@@ -41,22 +47,23 @@ export default async function MyClassPage() {
                   },
                 },
               },
+              // Include assignments for each subject
+              assignments: {
+                orderBy: {
+                  dueDate: 'desc',
+                },
+              },
             },
           },
         },
       },
-      // Include assignments for this student
+      // Include submissions for this student
       submissions: {
         include: {
           assignment: {
             include: {
               subject: true,
             },
-          },
-        },
-        orderBy: {
-          assignment: {
-            dueDate: 'desc',
           },
         },
       },
@@ -66,6 +73,15 @@ export default async function MyClassPage() {
   if (!student) {
     redirect('/dashboard');
   }
+
+  // Transform assignments to include submission status
+  const assignmentsWithStatus: AssignmentWithSubmission[] = student.class.subjects.flatMap(subject =>
+    subject.assignments.map(assignment => ({
+      ...assignment,
+      subject,
+      submission: student.submissions.find(s => s.assignmentId === assignment.id) || null,
+    }))
+  );
 
   return (
     <div className="space-y-6">
@@ -95,7 +111,7 @@ export default async function MyClassPage() {
           <CardHeader>
             <CardTitle>Assignments</CardTitle>
             <CardDescription>
-              {student.submissions.length} total assignments
+              {assignmentsWithStatus.length} total assignments
             </CardDescription>
           </CardHeader>
         </Card>
@@ -104,7 +120,7 @@ export default async function MyClassPage() {
           <CardHeader>
             <CardTitle>Pending</CardTitle>
             <CardDescription>
-              {student.submissions.filter(s => s.status === 'PENDING').length} assignments
+              {assignmentsWithStatus.filter(a => !a.submission).length} assignments
             </CardDescription>
           </CardHeader>
         </Card>
@@ -121,7 +137,7 @@ export default async function MyClassPage() {
         </TabsContent>
 
         <TabsContent value="assignments" className="mt-4">
-          <StudentAssignmentList submissions={student.submissions} />
+          <StudentAssignmentList assignments={assignmentsWithStatus} />
         </TabsContent>
       </Tabs>
     </div>
