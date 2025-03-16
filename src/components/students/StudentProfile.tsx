@@ -1,221 +1,322 @@
 'use client';
 
-import { useState } from 'react';
-import { format } from 'date-fns';
-import type { StudentWithRelations } from '@/types';
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { StudentWithRelations } from "@/types";
+import { formatDate } from "@/lib/utils";
 
-type Props = {
+interface StudentProfileProps {
   student: StudentWithRelations;
-};
+}
 
-export default function StudentProfile({ student }: Props) {
-  const [activeTab, setActiveTab] = useState('personal');
+export default function StudentProfile({ student }: StudentProfileProps) {
+  // Calculate statistics
+  const totalExams = student.examResults.length;
+  const totalMarks = student.examResults.reduce((sum, result) => sum + result.marks, 0);
+  const totalPossibleMarks = student.examResults.reduce((sum, result) => sum + result.totalMarks, 0);
+  const averagePercentage = totalPossibleMarks > 0 ? (totalMarks / totalPossibleMarks) * 100 : 0;
 
-  const tabs = [
-    { id: 'personal', label: 'Personal Information' },
-    { id: 'academic', label: 'Academic Records' },
-    { id: 'attendance', label: 'Attendance' },
-    { id: 'assignments', label: 'Assignments' },
-  ];
+  const totalAttendance = student.attendances.length;
+  const presentDays = student.attendances.filter(a => a.status === "PRESENT").length;
+  const lateDays = student.attendances.filter(a => a.status === "LATE").length;
+  const absentDays = student.attendances.filter(a => a.status === "ABSENT").length;
+  const attendancePercentage = totalAttendance > 0 ? ((presentDays + lateDays) / totalAttendance) * 100 : 0;
+
+  const pendingAssignments = student.assignments.filter(a => a.status === "PENDING").length;
+
+  // Calculate fee statistics
+  const totalFees = student.feePayments.reduce((sum, payment) => sum + payment.amount, 0);
+  const paidFees = student.feePayments
+    .filter(payment => payment.status === "PAID")
+    .reduce((sum, payment) => sum + payment.amount, 0);
+  const pendingFees = totalFees - paidFees;
+  const paymentStatus = pendingFees > 0 ? "PENDING" : "PAID";
 
   return (
-    <div className="bg-white shadow rounded-lg">
+    <div className="space-y-6 p-6">
       {/* Profile Header */}
-      <div className="p-6 border-b">
-        <div className="flex items-center space-x-4">
-          <div className="flex-1">
-            <h2 className="text-xl font-semibold text-gray-900">
-              {student.user.firstName} {student.user.lastName}
-            </h2>
-            <p className="text-sm text-gray-500">
-              Class {student.class.grade}-{student.class.section} • Roll Number: {student.rollNumber}
-            </p>
-          </div>
-        </div>
+      <div className="text-center">
+        <h1 className="text-3xl font-bold">{student.user.firstName} {student.user.lastName}</h1>
+        <p className="text-gray-500">Class {student.class.grade}-{student.class.section} | Roll Number: {student.rollNumber}</p>
       </div>
 
-      {/* Navigation Tabs */}
-      <div className="border-b">
-        <nav className="flex -mb-px">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`py-4 px-6 text-sm font-medium ${
-                activeTab === tab.id
-                  ? 'border-b-2 border-blue-500 text-blue-600'
-                  : 'text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </nav>
+      {/* Quick Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card className="bg-blue-50">
+          <CardContent className="p-4">
+            <h3 className="font-semibold text-blue-700">Academic Performance</h3>
+            <p className="text-2xl font-bold">{averagePercentage.toFixed(1)}%</p>
+            <p className="text-sm text-gray-600">{totalExams} Exams</p>
+          </CardContent>
+        </Card>
+        <Card className="bg-green-50">
+          <CardContent className="p-4">
+            <h3 className="font-semibold text-green-700">Attendance Rate</h3>
+            <p className="text-2xl font-bold">{attendancePercentage.toFixed(1)}%</p>
+            <p className="text-sm text-gray-600">{totalAttendance} Days</p>
+          </CardContent>
+        </Card>
+        <Card className="bg-yellow-50">
+          <CardContent className="p-4">
+            <h3 className="font-semibold text-yellow-700">Pending Assignments</h3>
+            <p className="text-2xl font-bold">{pendingAssignments}</p>
+            <p className="text-sm text-gray-600">Total: {student.assignments.length}</p>
+          </CardContent>
+        </Card>
+        <Card className={paymentStatus === "PAID" ? "bg-green-50" : "bg-red-50"}>
+          <CardContent className="p-4">
+            <h3 className={`font-semibold ${paymentStatus === "PAID" ? "text-green-700" : "text-red-700"}`}>Fee Status</h3>
+            <p className="text-2xl font-bold">{((paidFees / totalFees) * 100).toFixed(1)}%</p>
+            <p className="text-sm text-gray-600">Paid: ${paidFees.toFixed(2)}</p>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Tab Content */}
-      <div className="p-6">
-        {activeTab === 'personal' && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Information Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Personal Information */}
+        <Card>
+          <CardHeader>
+            <h2 className="text-xl font-semibold">Personal Information</h2>
+          </CardHeader>
+          <CardContent>
+            <dl className="space-y-2">
               <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Student Details</h3>
-                <dl className="space-y-3">
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500">Email</dt>
-                    <dd className="mt-1 text-sm text-gray-900">{student.user.email}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500">Class Teacher</dt>
-                    <dd className="mt-1 text-sm text-gray-900">
-                      {student.class.teacher.user.firstName} {student.class.teacher.user.lastName}
-                    </dd>
-                  </div>
-                  {student.user.phoneNumber && (
-                    <div>
-                      <dt className="text-sm font-medium text-gray-500">Phone Number</dt>
-                      <dd className="mt-1 text-sm text-gray-900">{student.user.phoneNumber}</dd>
-                    </div>
-                  )}
-                  {student.user.address && (
-                    <div>
-                      <dt className="text-sm font-medium text-gray-500">Address</dt>
-                      <dd className="mt-1 text-sm text-gray-900">{student.user.address}</dd>
-                    </div>
-                  )}
-                </dl>
+                <dt className="font-medium text-gray-500">Email</dt>
+                <dd>{student.user.email}</dd>
               </div>
               <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Parent Information</h3>
-                <dl className="space-y-3">
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500">Name</dt>
-                    <dd className="mt-1 text-sm text-gray-900">
-                      {student.parent.user.firstName} {student.parent.user.lastName}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500">Email</dt>
-                    <dd className="mt-1 text-sm text-gray-900">{student.parent.user.email}</dd>
-                  </div>
-                  {student.parent.user.phoneNumber && (
-                    <div>
-                      <dt className="text-sm font-medium text-gray-500">Phone Number</dt>
-                      <dd className="mt-1 text-sm text-gray-900">{student.parent.user.phoneNumber}</dd>
-                    </div>
-                  )}
-                </dl>
+                <dt className="font-medium text-gray-500">Roll Number</dt>
+                <dd>{student.rollNumber}</dd>
               </div>
-            </div>
-          </div>
-        )}
+            </dl>
+          </CardContent>
+        </Card>
 
-        {activeTab === 'academic' && (
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Exam Results</h3>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Subject</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Marks</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Percentage</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {student.examResults.map((result) => (
-                      <tr key={result.id}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{result.subject.name}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {format(new Date(result.examDate), 'MMM d, yyyy')}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {result.marks}/{result.totalMarks}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {((result.marks / result.totalMarks) * 100).toFixed(2)}%
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+        {/* Class Information */}
+        <Card>
+          <CardHeader>
+            <h2 className="text-xl font-semibold">Class Information</h2>
+          </CardHeader>
+          <CardContent>
+            <dl className="space-y-2">
+              <div>
+                <dt className="font-medium text-gray-500">Grade & Section</dt>
+                <dd>{student.class.grade}-{student.class.section}</dd>
               </div>
-            </div>
-          </div>
-        )}
+              <div>
+                <dt className="font-medium text-gray-500">Class Teacher</dt>
+                <dd>{student.class.teacher.user.firstName} {student.class.teacher.user.lastName}</dd>
+              </div>
+            </dl>
+          </CardContent>
+        </Card>
 
-        {activeTab === 'attendance' && (
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Attendance Record</h3>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {student.attendances.map((attendance) => (
-                      <tr key={attendance.id}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {format(new Date(attendance.date), 'MMM d, yyyy')}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          <span
-                            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                              attendance.status === 'Present'
-                                ? 'bg-green-100 text-green-800'
-                                : attendance.status === 'Late'
-                                ? 'bg-yellow-100 text-yellow-800'
-                                : 'bg-red-100 text-red-800'
-                            }`}
-                          >
-                            {attendance.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+        {/* Parent Information */}
+        <Card>
+          <CardHeader>
+            <h2 className="text-xl font-semibold">Parent Information</h2>
+          </CardHeader>
+          <CardContent>
+            <dl className="space-y-2">
+              <div>
+                <dt className="font-medium text-gray-500">Name</dt>
+                <dd>{student.parent.user.firstName} {student.parent.user.lastName}</dd>
               </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'assignments' && (
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Assignments</h3>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Title</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Subject</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Due Date</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {student.assignments.map((assignment) => (
-                      <tr key={assignment.id}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{assignment.title}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{assignment.subject.name}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {format(new Date(assignment.dueDate), 'MMM d, yyyy')}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div>
+                <dt className="font-medium text-gray-500">Email</dt>
+                <dd>{student.parent.user.email}</dd>
               </div>
-            </div>
-          </div>
-        )}
+            </dl>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Attendance Overview */}
+      <Card>
+        <CardHeader>
+          <h2 className="text-xl font-semibold">Attendance Overview</h2>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div className="bg-green-50 p-4 rounded-lg">
+              <p className="text-green-700 font-semibold">Present</p>
+              <p className="text-2xl font-bold">{presentDays}</p>
+            </div>
+            <div className="bg-yellow-50 p-4 rounded-lg">
+              <p className="text-yellow-700 font-semibold">Late</p>
+              <p className="text-2xl font-bold">{lateDays}</p>
+            </div>
+            <div className="bg-red-50 p-4 rounded-lg">
+              <p className="text-red-700 font-semibold">Absent</p>
+              <p className="text-2xl font-bold">{absentDays}</p>
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left py-2">Date</th>
+                  <th className="text-left py-2">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {student.attendances.map((attendance) => (
+                  <tr key={attendance.id} className="border-b">
+                    <td className="py-2">{formatDate(attendance.date)}</td>
+                    <td className="py-2">
+                      <span className={`px-2 py-1 rounded text-sm ${
+                        attendance.status === "PRESENT" ? "bg-green-100 text-green-800" :
+                        attendance.status === "LATE" ? "bg-yellow-100 text-yellow-800" :
+                        "bg-red-100 text-red-800"
+                      }`}>
+                        {attendance.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Academic Performance */}
+      <Card>
+        <CardHeader>
+          <h2 className="text-xl font-semibold">Academic Performance</h2>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left py-2">Subject</th>
+                  <th className="text-left py-2">Date</th>
+                  <th className="text-left py-2">Marks</th>
+                  <th className="text-left py-2">Percentage</th>
+                </tr>
+              </thead>
+              <tbody>
+                {student.examResults.map((result) => {
+                  const percentage = (result.marks / result.totalMarks) * 100;
+                  return (
+                    <tr key={result.id} className="border-b">
+                      <td className="py-2">{result.subject.name}</td>
+                      <td className="py-2">{formatDate(result.date)}</td>
+                      <td className="py-2">{result.marks}/{result.totalMarks}</td>
+                      <td className="py-2">
+                        <span className={`px-2 py-1 rounded text-sm ${
+                          percentage >= 75 ? "bg-green-100 text-green-800" :
+                          percentage >= 50 ? "bg-yellow-100 text-yellow-800" :
+                          "bg-red-100 text-red-800"
+                        }`}>
+                          {percentage.toFixed(1)}%
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Assignments */}
+      <Card>
+        <CardHeader>
+          <h2 className="text-xl font-semibold">Assignments</h2>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left py-2">Title</th>
+                  <th className="text-left py-2">Subject</th>
+                  <th className="text-left py-2">Due Date</th>
+                  <th className="text-left py-2">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {student.assignments.map((assignment) => (
+                  <tr key={assignment.id} className="border-b">
+                    <td className="py-2">{assignment.title}</td>
+                    <td className="py-2">{assignment.subject.name}</td>
+                    <td className="py-2">{formatDate(assignment.dueDate)}</td>
+                    <td className="py-2">
+                      <span className={`px-2 py-1 rounded text-sm ${
+                        assignment.status === "GRADED" ? "bg-green-100 text-green-800" :
+                        assignment.status === "SUBMITTED" ? "bg-blue-100 text-blue-800" :
+                        "bg-yellow-100 text-yellow-800"
+                      }`}>
+                        {assignment.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Fee Payments */}
+      <Card>
+        <CardHeader>
+          <h2 className="text-xl font-semibold">Fee Payments</h2>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <p className="text-blue-700 font-semibold">Total Fees</p>
+              <p className="text-2xl font-bold">${totalFees.toFixed(2)}</p>
+            </div>
+            <div className="bg-green-50 p-4 rounded-lg">
+              <p className="text-green-700 font-semibold">Paid Fees</p>
+              <p className="text-2xl font-bold">${paidFees.toFixed(2)}</p>
+            </div>
+            <div className={`${pendingFees > 0 ? "bg-red-50" : "bg-green-50"} p-4 rounded-lg`}>
+              <p className={`${pendingFees > 0 ? "text-red-700" : "text-green-700"} font-semibold`}>
+                {pendingFees > 0 ? "Pending Fees" : "All Paid"}
+              </p>
+              <p className="text-2xl font-bold">${pendingFees.toFixed(2)}</p>
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left py-2">Description</th>
+                  <th className="text-left py-2">Amount</th>
+                  <th className="text-left py-2">Due Date</th>
+                  <th className="text-left py-2">Paid Date</th>
+                  <th className="text-left py-2">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {student.feePayments.map((payment) => (
+                  <tr key={payment.id} className="border-b">
+                    <td className="py-2">{payment.description}</td>
+                    <td className="py-2">${payment.amount.toFixed(2)}</td>
+                    <td className="py-2">{formatDate(payment.dueDate)}</td>
+                    <td className="py-2">{payment.paidDate ? formatDate(payment.paidDate) : "-"}</td>
+                    <td className="py-2">
+                      <span className={`px-2 py-1 rounded text-sm ${
+                        payment.status === "PAID" ? "bg-green-100 text-green-800" :
+                        payment.status === "OVERDUE" ? "bg-red-100 text-red-800" :
+                        "bg-yellow-100 text-yellow-800"
+                      }`}>
+                        {payment.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 } 
