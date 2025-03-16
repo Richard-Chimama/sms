@@ -2,6 +2,7 @@ import { getServerSession } from 'next-auth/next';
 import { NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { pusherServer } from '@/lib/pusher';
 import { z } from 'zod';
 import type { Session } from 'next-auth';
 
@@ -59,6 +60,9 @@ export async function POST(request: Request) {
       where: { id: chatId },
       data: { updatedAt: new Date() },
     });
+
+    // Trigger Pusher event
+    await pusherServer.trigger(`chat-${chatId}`, 'new-message', message);
 
     return NextResponse.json(message);
   } catch (error) {

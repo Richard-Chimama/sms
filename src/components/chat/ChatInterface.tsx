@@ -1,16 +1,13 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { format } from 'date-fns';
+import { Input } from '@/components/ui/input';
+import { Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { pusherClient } from '@/lib/pusher';
-import { Send } from 'lucide-react';
-import { ChatType } from '@prisma/client';
-import { useRouter } from 'next/navigation';
 
 interface ChatUser {
   id: string;
@@ -18,30 +15,23 @@ interface ChatUser {
   lastName: string | null;
 }
 
-interface ChatParticipant {
-  id: string;
-  userId: string;
-  chatId: string;
-  role: string;
-  user: ChatUser;
-}
-
 interface ChatMessage {
   id: string;
   content: string;
   createdAt: Date;
-  userId: string;
-  chatId: string;
+  user: ChatUser;
+}
+
+interface ChatParticipant {
   user: ChatUser;
 }
 
 interface Chat {
   id: string;
   name: string | null;
-  type: ChatType;
+  type: 'INDIVIDUAL' | 'GROUP' | 'CLASS';
   participants: ChatParticipant[];
   messages: ChatMessage[];
-  updatedAt: Date;
 }
 
 interface ChatInterfaceProps {
@@ -49,40 +39,12 @@ interface ChatInterfaceProps {
   currentUserId: string;
 }
 
-export function ChatInterface({ chat, currentUserId }: ChatInterfaceProps) {
+export function ChatInterface({ chat: initialChat, currentUserId }: ChatInterfaceProps) {
   const router = useRouter();
-  const [messages, setMessages] = useState<ChatMessage[]>(chat.messages);
-  const [newMessage, setNewMessage] = useState('');
+  const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [chat, setChat] = useState(initialChat);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const channel = pusherClient.subscribe(`chat-${chat.id}`);
-
-    channel.bind('new-message', (message: ChatMessage) => {
-      setMessages((prev) => [...prev, message]);
-      scrollToBottom();
-    });
-
-    return () => {
-      pusherClient.unsubscribe(`chat-${chat.id}`);
-    };
-  }, [chat.id]);
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  const scrollToBottom = () => {
-    if (scrollAreaRef.current) {
-      const scrollContainer = scrollAreaRef.current.querySelector(
-        '[data-radix-scroll-area-viewport]'
-      );
-      if (scrollContainer) {
-        scrollContainer.scrollTop = scrollContainer.scrollHeight;
-      }
-    }
-  };
 
   const getChatName = () => {
     if (chat.type !== 'INDIVIDUAL' && chat.name) {
@@ -97,16 +59,39 @@ export function ChatInterface({ chat, currentUserId }: ChatInterfaceProps) {
       : 'Unknown User';
   };
 
-  const getLastMessage = (chat: Chat) => {
-    if (chat.messages.length === 0) {
-      return 'No messages yet';
+  const scrollToBottom = () => {
+    if (scrollAreaRef.current) {
+      const scrollContainer = scrollAreaRef.current.querySelector(
+        '[data-radix-scroll-area-viewport]'
+      );
+      if (scrollContainer) {
+        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+      }
     }
-    const lastMessage = chat.messages[0];
-    return `${lastMessage.user.firstName || ''} ${lastMessage.user.lastName || ''}`.trim() + `: ${lastMessage.content}`;
   };
 
+  useEffect(() => {
+    scrollToBottom();
+  }, [chat.messages]);
+
+  useEffect(() => {
+    pusherClient.subscribe(`chat-${chat.id}`);
+
+    pusherClient.bind('new-message', (message: ChatMessage) => {
+      setChat((currentChat) => ({
+        ...currentChat,
+        messages: [...currentChat.messages, message],
+      }));
+    });
+
+    return () => {
+      pusherClient.unsubscribe(`chat-${chat.id}`);
+      pusherClient.unbind('new-message');
+    };
+  }, [chat.id]);
+
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || isLoading) return;
+    if (!message.trim() || isLoading) return;
 
     setIsLoading(true);
     try {
@@ -117,7 +102,7 @@ export function ChatInterface({ chat, currentUserId }: ChatInterfaceProps) {
         },
         body: JSON.stringify({
           chatId: chat.id,
-          content: newMessage.trim(),
+          content: message.trim(),
         }),
       });
 
@@ -125,8 +110,7 @@ export function ChatInterface({ chat, currentUserId }: ChatInterfaceProps) {
         throw new Error('Failed to send message');
       }
 
-      setNewMessage('');
-      router.refresh();
+      setMessage('');
     } catch (error) {
       toast.error('Failed to send message');
     } finally {
@@ -142,65 +126,63 @@ export function ChatInterface({ chat, currentUserId }: ChatInterfaceProps) {
   };
 
   return (
-    <Card className="h-full flex flex-col">
-      <CardHeader>
-        <CardTitle>{getChatName()}</CardTitle>
-      </CardHeader>
-      <CardContent className="flex-1 flex flex-col">
-        <ScrollArea
-          ref={scrollAreaRef}
-          className="flex-1 pr-4"
-        >
-          <div className="space-y-4">
-            {messages.map((message) => (
+    <div className="flex flex-col h-full">
+      <div className="border-b p-4">
+        <h2 className="text-xl font-semibold">{getChatName()}</h2>
+      </div>
+      <ScrollArea ref={scrollAreaRef} className="flex-1 p-4">
+        <div className="space-y-4">
+          {chat.messages.map((msg) => (
+            <div
+              key={msg.id}
+              className={`flex ${
+                msg.user.id === currentUserId ? 'justify-end' : 'justify-start'
+              }`}
+            >
               <div
-                key={message.id}
-                className={`flex ${
-                  message.user.id === currentUserId
-                    ? 'justify-end'
-                    : 'justify-start'
+                className={`max-w-[70%] rounded-lg p-3 ${
+                  msg.user.id === currentUserId
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted'
                 }`}
               >
-                <div
-                  className={`max-w-[70%] rounded-lg p-3 ${
-                    message.user.id === currentUserId
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted'
-                  }`}
-                >
-                  {message.user.id !== currentUserId && (
-                    <div className="text-sm text-black font-medium mb-1">
-                      {message.user.firstName && message.user.lastName
-                        ? `${message.user.firstName} ${message.user.lastName}`
-                        : 'Unknown User'}
-                    </div>
-                  )}
-                  <p className="break-words text-black">{message.content}</p>
-                  <div className="text-xs mt-1 opacity-70 text-black">
-                    {new Date(message.createdAt).toLocaleTimeString()}
+                {msg.user.id !== currentUserId && (
+                  <div className="text-sm font-medium mb-1 text-foreground">
+                    {msg.user.firstName && msg.user.lastName
+                      ? `${msg.user.firstName} ${msg.user.lastName}`
+                      : 'Unknown User'}
                   </div>
+                )}
+                <p className="break-words text-sm leading-relaxed">{msg.content}</p>
+                <div className="text-xs mt-1 opacity-70">
+                  {new Date(msg.createdAt).toLocaleTimeString()}
                 </div>
               </div>
-            ))}
-          </div>
-        </ScrollArea>
-        <div className="flex items-center gap-2 mt-4">
+            </div>
+          ))}
+        </div>
+      </ScrollArea>
+      <div className="border-t p-4">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSendMessage();
+          }}
+          className="flex gap-2"
+        >
           <Input
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
             onKeyPress={handleKeyPress}
             placeholder="Type a message..."
             disabled={isLoading}
-            className="flex-1 text-black"
+            className="flex-1"
           />
-          <Button
-            onClick={handleSendMessage}
-            disabled={isLoading || !newMessage.trim()}
-          >
+          <Button type="submit" disabled={isLoading}>
             <Send className="h-4 w-4" />
           </Button>
-        </div>
-      </CardContent>
-    </Card>
+        </form>
+      </div>
+    </div>
   );
 } 
