@@ -11,7 +11,7 @@ const adminLinks = [
   { href: '/teachers', label: 'Teachers' },
   { href: '/classes', label: 'Classes' },
   { href: '/notices', label: 'Notices' },
-  { href: '/fees', label: 'Fees' },
+  { href: '/admin/fees', label: 'Fees Management' },
   { href: '/chats', label: 'Chats' },
   { href: '/settings', label: 'Settings' },
 ];
