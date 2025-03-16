@@ -84,6 +84,7 @@ model Student {
   parent       Parent        @relation(fields: [parentId], references: [id])
   attendances  Attendance[]
   examResults  ExamResult[]
+  examSubmissions ExamSubmission[]
   submissions  AssignmentSubmission[]
   feePayments  FeePayment[]
 
@@ -139,6 +140,7 @@ model Subject {
   class       Class       @relation(fields: [classId], references: [id])
   examResults ExamResult[]
   assignments Assignment[]
+  exams       Exam[]
   timetables  TeacherTimetable[]
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
@@ -297,4 +299,94 @@ model TeacherDuty {
   @@unique([teacherId, date, startTime])
   @@index([teacherId])
   @@index([type])
+}
+
+model Exam {
+  id          String       @id @default(cuid())
+  title       String
+  description String?
+  startDate   DateTime
+  endDate     DateTime
+  type        ExamType    @default(REGULAR)
+  subjectId   String
+  subject     Subject     @relation(fields: [subjectId], references: [id])
+  questions   Question[]
+  submissions ExamSubmission[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([subjectId])
+}
+
+enum ExamType {
+  REGULAR
+  MIDTERM
+  FINAL
+  QUIZ
+}
+
+model Question {
+  id          String   @id @default(cuid())
+  examId      String
+  text        String
+  type        QuestionType @default(MULTIPLE_CHOICE)
+  options     Json?    // For multiple choice questions
+  answer      String   // Correct answer or marking scheme
+  marks      Float
+  exam        Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  answers     Answer[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([examId])
+}
+
+enum QuestionType {
+  MULTIPLE_CHOICE
+  SHORT_ANSWER
+  LONG_ANSWER
+  TRUE_FALSE
+}
+
+model Answer {
+  id          String   @id @default(cuid())
+  questionId  String
+  submissionId String
+  answer      String
+  marks       Float?
+  feedback    String?
+  question    Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  submission  ExamSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([questionId, submissionId])
+  @@index([questionId])
+  @@index([submissionId])
+}
+
+model ExamSubmission {
+  id          String   @id @default(cuid())
+  examId      String
+  studentId   String
+  status      ExamSubmissionStatus @default(IN_PROGRESS)
+  startedAt   DateTime @default(now())
+  submittedAt DateTime?
+  totalMarks  Float?
+  exam        Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  answers     Answer[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([examId, studentId])
+  @@index([examId])
+  @@index([studentId])
+}
+
+enum ExamSubmissionStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  SUBMITTED
+  GRADED
 }

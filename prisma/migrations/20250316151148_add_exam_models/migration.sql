@@ -1,6 +1,21 @@
 -- CreateEnum
 CREATE TYPE "NoticeCategory" AS ENUM ('GENERAL', 'STUDENT', 'TEACHER', 'PARENT', 'EXAM', 'EVENT');
 
+-- CreateEnum
+CREATE TYPE "DayOfWeek" AS ENUM ('MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY');
+
+-- CreateEnum
+CREATE TYPE "DutyType" AS ENUM ('MORNING_ASSEMBLY', 'LUNCH_BREAK', 'EVENING_GAMES', 'EXAM_SUPERVISION', 'EVENT_COORDINATION');
+
+-- CreateEnum
+CREATE TYPE "ExamType" AS ENUM ('REGULAR', 'MIDTERM', 'FINAL', 'QUIZ');
+
+-- CreateEnum
+CREATE TYPE "QuestionType" AS ENUM ('MULTIPLE_CHOICE', 'SHORT_ANSWER', 'LONG_ANSWER', 'TRUE_FALSE');
+
+-- CreateEnum
+CREATE TYPE "ExamSubmissionStatus" AS ENUM ('NOT_STARTED', 'IN_PROGRESS', 'SUBMITTED', 'GRADED');
+
 -- CreateTable
 CREATE TABLE "Account" (
     "id" TEXT NOT NULL,
@@ -144,13 +159,27 @@ CREATE TABLE "Assignment" (
     "title" TEXT NOT NULL,
     "description" TEXT,
     "dueDate" TIMESTAMP(3) NOT NULL,
-    "status" TEXT NOT NULL DEFAULT 'PENDING',
-    "studentId" TEXT NOT NULL,
+    "teacherId" TEXT NOT NULL,
     "subjectId" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Assignment_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "AssignmentSubmission" (
+    "id" TEXT NOT NULL,
+    "assignmentId" TEXT NOT NULL,
+    "studentId" TEXT NOT NULL,
+    "content" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'SUBMITTED',
+    "grade" DOUBLE PRECISION,
+    "feedback" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "AssignmentSubmission_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -181,6 +210,95 @@ CREATE TABLE "Notice" (
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Notice_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "TeacherTimetable" (
+    "id" TEXT NOT NULL,
+    "teacherId" TEXT NOT NULL,
+    "classId" TEXT NOT NULL,
+    "subjectId" TEXT NOT NULL,
+    "dayOfWeek" "DayOfWeek" NOT NULL,
+    "startTime" TIME NOT NULL,
+    "endTime" TIME NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "TeacherTimetable_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "TeacherDuty" (
+    "id" TEXT NOT NULL,
+    "teacherId" TEXT NOT NULL,
+    "type" "DutyType" NOT NULL,
+    "date" TIMESTAMP(3) NOT NULL,
+    "startTime" TIME NOT NULL,
+    "endTime" TIME NOT NULL,
+    "notes" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "TeacherDuty_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Exam" (
+    "id" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "description" TEXT,
+    "startDate" TIMESTAMP(3) NOT NULL,
+    "endDate" TIMESTAMP(3) NOT NULL,
+    "type" "ExamType" NOT NULL DEFAULT 'REGULAR',
+    "subjectId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Exam_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Question" (
+    "id" TEXT NOT NULL,
+    "examId" TEXT NOT NULL,
+    "text" TEXT NOT NULL,
+    "type" "QuestionType" NOT NULL DEFAULT 'MULTIPLE_CHOICE',
+    "options" JSONB,
+    "answer" TEXT NOT NULL,
+    "marks" DOUBLE PRECISION NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Question_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Answer" (
+    "id" TEXT NOT NULL,
+    "questionId" TEXT NOT NULL,
+    "submissionId" TEXT NOT NULL,
+    "answer" TEXT NOT NULL,
+    "marks" DOUBLE PRECISION,
+    "feedback" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Answer_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ExamSubmission" (
+    "id" TEXT NOT NULL,
+    "examId" TEXT NOT NULL,
+    "studentId" TEXT NOT NULL,
+    "status" "ExamSubmissionStatus" NOT NULL DEFAULT 'IN_PROGRESS',
+    "startedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "submittedAt" TIMESTAMP(3),
+    "totalMarks" DOUBLE PRECISION,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "ExamSubmission_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -232,6 +350,21 @@ CREATE UNIQUE INDEX "Subject_code_key" ON "Subject"("code");
 CREATE UNIQUE INDEX "Attendance_studentId_date_key" ON "Attendance"("studentId", "date");
 
 -- CreateIndex
+CREATE INDEX "Assignment_teacherId_idx" ON "Assignment"("teacherId");
+
+-- CreateIndex
+CREATE INDEX "Assignment_subjectId_idx" ON "Assignment"("subjectId");
+
+-- CreateIndex
+CREATE INDEX "AssignmentSubmission_assignmentId_idx" ON "AssignmentSubmission"("assignmentId");
+
+-- CreateIndex
+CREATE INDEX "AssignmentSubmission_studentId_idx" ON "AssignmentSubmission"("studentId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "AssignmentSubmission_assignmentId_studentId_key" ON "AssignmentSubmission"("assignmentId", "studentId");
+
+-- CreateIndex
 CREATE INDEX "FeePayment_studentId_idx" ON "FeePayment"("studentId");
 
 -- CreateIndex
@@ -239,6 +372,51 @@ CREATE INDEX "Notice_category_idx" ON "Notice"("category");
 
 -- CreateIndex
 CREATE INDEX "Notice_authorId_idx" ON "Notice"("authorId");
+
+-- CreateIndex
+CREATE INDEX "TeacherTimetable_teacherId_idx" ON "TeacherTimetable"("teacherId");
+
+-- CreateIndex
+CREATE INDEX "TeacherTimetable_classId_idx" ON "TeacherTimetable"("classId");
+
+-- CreateIndex
+CREATE INDEX "TeacherTimetable_subjectId_idx" ON "TeacherTimetable"("subjectId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "TeacherTimetable_teacherId_classId_subjectId_dayOfWeek_star_key" ON "TeacherTimetable"("teacherId", "classId", "subjectId", "dayOfWeek", "startTime");
+
+-- CreateIndex
+CREATE INDEX "TeacherDuty_teacherId_idx" ON "TeacherDuty"("teacherId");
+
+-- CreateIndex
+CREATE INDEX "TeacherDuty_type_idx" ON "TeacherDuty"("type");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "TeacherDuty_teacherId_date_startTime_key" ON "TeacherDuty"("teacherId", "date", "startTime");
+
+-- CreateIndex
+CREATE INDEX "Exam_subjectId_idx" ON "Exam"("subjectId");
+
+-- CreateIndex
+CREATE INDEX "Question_examId_idx" ON "Question"("examId");
+
+-- CreateIndex
+CREATE INDEX "Answer_questionId_idx" ON "Answer"("questionId");
+
+-- CreateIndex
+CREATE INDEX "Answer_submissionId_idx" ON "Answer"("submissionId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Answer_questionId_submissionId_key" ON "Answer"("questionId", "submissionId");
+
+-- CreateIndex
+CREATE INDEX "ExamSubmission_examId_idx" ON "ExamSubmission"("examId");
+
+-- CreateIndex
+CREATE INDEX "ExamSubmission_studentId_idx" ON "ExamSubmission"("studentId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ExamSubmission_examId_studentId_key" ON "ExamSubmission"("examId", "studentId");
 
 -- AddForeignKey
 ALTER TABLE "Account" ADD CONSTRAINT "Account_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -280,13 +458,49 @@ ALTER TABLE "ExamResult" ADD CONSTRAINT "ExamResult_studentId_fkey" FOREIGN KEY 
 ALTER TABLE "ExamResult" ADD CONSTRAINT "ExamResult_subjectId_fkey" FOREIGN KEY ("subjectId") REFERENCES "Subject"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Assignment" ADD CONSTRAINT "Assignment_studentId_fkey" FOREIGN KEY ("studentId") REFERENCES "Student"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Assignment" ADD CONSTRAINT "Assignment_teacherId_fkey" FOREIGN KEY ("teacherId") REFERENCES "Teacher"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Assignment" ADD CONSTRAINT "Assignment_subjectId_fkey" FOREIGN KEY ("subjectId") REFERENCES "Subject"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "AssignmentSubmission" ADD CONSTRAINT "AssignmentSubmission_assignmentId_fkey" FOREIGN KEY ("assignmentId") REFERENCES "Assignment"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "AssignmentSubmission" ADD CONSTRAINT "AssignmentSubmission_studentId_fkey" FOREIGN KEY ("studentId") REFERENCES "Student"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "FeePayment" ADD CONSTRAINT "FeePayment_studentId_fkey" FOREIGN KEY ("studentId") REFERENCES "Student"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Notice" ADD CONSTRAINT "Notice_authorId_fkey" FOREIGN KEY ("authorId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "TeacherTimetable" ADD CONSTRAINT "TeacherTimetable_teacherId_fkey" FOREIGN KEY ("teacherId") REFERENCES "Teacher"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "TeacherTimetable" ADD CONSTRAINT "TeacherTimetable_classId_fkey" FOREIGN KEY ("classId") REFERENCES "Class"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "TeacherTimetable" ADD CONSTRAINT "TeacherTimetable_subjectId_fkey" FOREIGN KEY ("subjectId") REFERENCES "Subject"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "TeacherDuty" ADD CONSTRAINT "TeacherDuty_teacherId_fkey" FOREIGN KEY ("teacherId") REFERENCES "Teacher"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Exam" ADD CONSTRAINT "Exam_subjectId_fkey" FOREIGN KEY ("subjectId") REFERENCES "Subject"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Question" ADD CONSTRAINT "Question_examId_fkey" FOREIGN KEY ("examId") REFERENCES "Exam"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Answer" ADD CONSTRAINT "Answer_questionId_fkey" FOREIGN KEY ("questionId") REFERENCES "Question"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Answer" ADD CONSTRAINT "Answer_submissionId_fkey" FOREIGN KEY ("submissionId") REFERENCES "ExamSubmission"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ExamSubmission" ADD CONSTRAINT "ExamSubmission_examId_fkey" FOREIGN KEY ("examId") REFERENCES "Exam"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ExamSubmission" ADD CONSTRAINT "ExamSubmission_studentId_fkey" FOREIGN KEY ("studentId") REFERENCES "Student"("id") ON DELETE CASCADE ON UPDATE CASCADE;
