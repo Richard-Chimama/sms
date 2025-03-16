@@ -1,79 +1,74 @@
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import { redirect, notFound } from 'next/navigation';
-import prisma from '@/lib/db/prisma';
+'use client';
+
+import { useState, useEffect } from 'react';
 import StudentProfile from '@/components/students/StudentProfile';
+import EditStudentButton from '@/components/students/EditStudentButton';
+import DeleteStudentButton from '@/components/students/DeleteStudentButton';
 import type { StudentWithRelations } from '@/types';
 
-type Props = {
+interface StudentPageProps {
   params: {
     id: string;
   };
-};
+}
 
-export default async function StudentProfilePage({ params }: Props) {
-  const session = await getServerSession(authOptions);
+export default function StudentPage({ params }: StudentPageProps) {
+  const [error, setError] = useState('');
+  const [student, setStudent] = useState<StudentWithRelations | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  if (!session || session.user.role !== 'ADMIN') {
-    redirect('/dashboard');
+  useEffect(() => {
+    const fetchStudent = async () => {
+      try {
+        const response = await fetch(`/api/students/${params.id}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch student');
+        }
+        const data = await response.json();
+        setStudent(data);
+      } catch (error) {
+        console.error('Error fetching student:', error);
+        setError(error instanceof Error ? error.message : 'Failed to fetch student');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchStudent();
+  }, [params.id]);
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center">Loading...</div>
+      </div>
+    );
   }
 
-  const student = await prisma.student.findUnique({
-    where: { id: params.id },
-    include: {
-      user: true,
-      class: {
-        include: {
-          teacher: {
-            include: {
-              user: true,
-            },
-          },
-        },
-      },
-      attendances: {
-        orderBy: {
-          date: 'desc',
-        },
-      },
-      examResults: {
-        include: {
-          subject: true,
-        },
-        orderBy: {
-          date: 'desc',
-        },
-      },
-      assignments: {
-        include: {
-          subject: true,
-        },
-        orderBy: {
-          dueDate: 'desc',
-        },
-      },
-      parent: {
-        include: {
-          user: true,
-        },
-      },
-      feePayments: {
-        orderBy: {
-          dueDate: 'desc',
-        },
-      },
-    },
-  }) as StudentWithRelations | null;
-
   if (!student) {
-    notFound();
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center text-red-600">Student not found</div>
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">Student Profile</h1>
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Student Profile</h1>
+        <div className="space-x-4">
+          <EditStudentButton student={student} />
+          <DeleteStudentButton student={student} />
+        </div>
       </div>
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg mb-6">
+          {error}
+        </div>
+      )}
+
       <StudentProfile student={student} />
     </div>
   );
