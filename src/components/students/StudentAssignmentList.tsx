@@ -90,20 +90,22 @@ export function StudentAssignmentList({ assignments }: StudentAssignmentListProp
           </CardContent>
           <CardFooter className="flex justify-between">
             <Button
-              variant="outline"
+              variant="secondary"
               size="sm"
               onClick={() => handleViewAssignment(assignment)}
+              className="flex items-center gap-2 hover:bg-secondary/80"
             >
-              <Eye className="w-4 h-4 mr-2" />
-              View Details
+              <Eye className="w-4 h-4" />
+              <span className="font-medium">View Details</span>
             </Button>
             {!assignment.submission && (
               <Button
                 size="sm"
                 onClick={() => handleViewAssignment(assignment)}
+                className="flex items-center gap-2"
               >
-                <FileText className="w-4 h-4 mr-2" />
-                Submit
+                <FileText className="w-4 h-4" />
+                <span className="font-medium">Submit</span>
               </Button>
             )}
           </CardFooter>
@@ -112,10 +114,7 @@ export function StudentAssignmentList({ assignments }: StudentAssignmentListProp
 
       {selectedAssignment && (
         <SubmitAssignmentDialog
-          assignment={{
-            ...selectedAssignment,
-            description: selectedAssignment.description || '',
-          }}
+          assignment={selectedAssignment}
           open={isSubmitDialogOpen}
           onOpenChange={setIsSubmitDialogOpen}
           onSuccess={handleSubmitSuccess}

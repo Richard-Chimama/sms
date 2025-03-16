@@ -12,11 +12,12 @@ import {
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { format } from 'date-fns';
-import { Assignment, Subject } from '@prisma/client';
+import { Assignment, Subject, AssignmentSubmission } from '@prisma/client';
 
 interface SubmitAssignmentDialogProps {
   assignment: Assignment & {
     subject: Subject;
+    submission: AssignmentSubmission | null;
   };
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -63,6 +64,9 @@ export function SubmitAssignmentDialog({
     }
   };
 
+  const isSubmitted = assignment.submission?.status === 'SUBMITTED';
+  const isGraded = assignment.submission?.status === 'GRADED';
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px]">
@@ -81,15 +85,45 @@ export function SubmitAssignmentDialog({
             </p>
           </div>
 
-          <div>
-            <h4 className="text-sm font-medium mb-2">Your Answer</h4>
-            <Textarea
-              placeholder="Write your answer here..."
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              className="min-h-[200px]"
-            />
-          </div>
+          {isSubmitted && (
+            <div>
+              <h4 className="text-sm font-medium mb-2">Your Submission</h4>
+              <p className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
+                {assignment.submission?.content}
+              </p>
+            </div>
+          )}
+
+          {!isSubmitted && (
+            <div>
+              <h4 className="text-sm font-medium mb-2">Your Answer</h4>
+              <Textarea
+                placeholder="Write your answer here..."
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                className="min-h-[200px]"
+              />
+            </div>
+          )}
+
+          {isGraded && (
+            <div className="space-y-2">
+              <div>
+                <h4 className="text-sm font-medium">Grade</h4>
+                <p className="text-sm text-muted-foreground">
+                  {assignment.submission?.grade}
+                </p>
+              </div>
+              {assignment.submission?.feedback && (
+                <div>
+                  <h4 className="text-sm font-medium">Feedback</h4>
+                  <p className="text-sm text-muted-foreground">
+                    {assignment.submission.feedback}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <DialogFooter>
@@ -98,11 +132,13 @@ export function SubmitAssignmentDialog({
             onClick={() => onOpenChange(false)}
             disabled={isSubmitting}
           >
-            Cancel
+            Close
           </Button>
-          <Button onClick={handleSubmit} disabled={isSubmitting}>
-            {isSubmitting ? 'Submitting...' : 'Submit Assignment'}
-          </Button>
+          {!isSubmitted && (
+            <Button onClick={handleSubmit} disabled={isSubmitting}>
+              {isSubmitting ? 'Submitting...' : 'Submit Assignment'}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
