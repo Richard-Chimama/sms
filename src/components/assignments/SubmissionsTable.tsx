@@ -82,11 +82,13 @@ export function SubmissionsTable({ submissions }: SubmissionsTableProps) {
               <TableCell>{submission.grade ?? '-'}</TableCell>
               <TableCell className="text-right">
                 <Button 
-                  variant="outline" 
+                  variant="secondary"
                   size="sm"
+                  className="font-medium hover:bg-secondary/80 gap-2"
                   onClick={() => setSelectedSubmission(submission)}
                 >
-                  View Submission
+                  <FileText className="h-4 w-4" />
+                  <span>View Submission</span>
                 </Button>
               </TableCell>
             </TableRow>
