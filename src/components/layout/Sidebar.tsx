@@ -3,6 +3,7 @@
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import type { Session } from 'next-auth';
 
 const adminLinks = [
   { href: '/dashboard', label: 'Dashboard' },
@@ -11,6 +12,7 @@ const adminLinks = [
   { href: '/classes', label: 'Classes' },
   { href: '/notices', label: 'Notices' },
   { href: '/fees', label: 'Fees' },
+  { href: '/chats', label: 'Chats' },
   { href: '/settings', label: 'Settings' },
 ];
 
@@ -19,16 +21,18 @@ const teacherLinks = [
   { href: '/my-classes', label: 'My Classes' },
   { href: '/assignments', label: 'Assignments' },
   { href: '/exams', label: 'Exams' },
+  { href: '/chats', label: 'Chats' },
 ];
 
 const studentLinks = [
   { href: '/dashboard', label: 'Dashboard' },
   { href: '/my-class', label: 'My Class' },
   { href: '/student-exams', label: 'Exams' },
+  { href: '/chats', label: 'Chats' },
 ];
 
 export default function Sidebar() {
-  const { data: session } = useSession();
+  const { data: session } = useSession() as { data: Session | null };
   const pathname = usePathname();
 
   if (!session?.user) return null;
