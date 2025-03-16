@@ -1,151 +1,115 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/db/prisma';
 import { z } from 'zod';
 
 const assignmentSchema = z.object({
-  title: z.string().min(1, 'Title is required'),
+  title: z.string().min(1),
   description: z.string().optional(),
-  dueDate: z.string().min(1, 'Due date is required'),
-  subjectId: z.string().min(1, 'Subject is required'),
-  classId: z.string().min(1, 'Class is required'),
+  subjectId: z.string().min(1),
+  dueDate: z.string().transform((str) => new Date(str)),
 });
 
-export async function POST(req: NextRequest) {
+export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
 
     if (!session?.user) {
-      return new NextResponse('Unauthorized', { status: 401 });
+      return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    if (session.user.role !== 'TEACHER') {
-      return new NextResponse('Forbidden', { status: 403 });
+    if (session.user.role !== "TEACHER") {
+      return new NextResponse("Forbidden", { status: 403 });
     }
 
-    const json = await req.json();
+    const json = await request.json();
     const body = assignmentSchema.parse(json);
 
-    // Verify that the teacher has access to the subject and class
+    // Get the teacher's ID
     const teacher = await prisma.teacher.findFirst({
+      where: { userId: session.user.id },
+    });
+
+    if (!teacher) {
+      return new NextResponse("Teacher not found", { status: 404 });
+    }
+
+    // Verify that the teacher has access to the subject
+    const subject = await prisma.subject.findFirst({
       where: {
-        userId: session.user.id,
-        subjects: {
-          some: {
-            id: body.subjectId,
-            classId: body.classId,
+        id: body.subjectId,
+        teacherId: teacher.id,
+      },
+    });
+
+    if (!subject) {
+      return new NextResponse("Subject not found or unauthorized", {
+        status: 404,
+      });
+    }
+
+    // Create the assignment
+    const assignment = await prisma.assignment.create({
+      data: {
+        title: body.title,
+        description: body.description,
+        dueDate: body.dueDate,
+        teacherId: teacher.id,
+        subjectId: body.subjectId,
+      },
+      include: {
+        subject: {
+          include: {
+            class: true,
           },
         },
       },
     });
 
-    if (!teacher) {
-      return new NextResponse('Forbidden', { status: 403 });
-    }
-
-    // Get all students in the class
-    const students = await prisma.student.findMany({
-      where: {
-        classId: body.classId,
-      },
-      select: {
-        id: true,
-      },
-    });
-
-    // Create assignments for all students in the class
-    const assignments = await prisma.$transaction(
-      students.map((student) =>
-        prisma.assignment.create({
-          data: {
-            title: body.title,
-            description: body.description,
-            dueDate: new Date(body.dueDate),
-            studentId: student.id,
-            subjectId: body.subjectId,
-          },
-        })
-      )
-    );
-
-    return NextResponse.json(assignments);
+    return NextResponse.json(assignment);
   } catch (error) {
-    console.error('Error in POST /api/assignments:', error);
-    if (error instanceof z.ZodError) {
-      return new NextResponse(JSON.stringify({ errors: error.errors }), {
-        status: 400,
-      });
-    }
-    return new NextResponse('Internal Server Error', { status: 500 });
+    console.error("[ASSIGNMENTS_POST]", error);
+    return new NextResponse("Internal Error", { status: 500 });
   }
 }
 
-export async function GET(req: NextRequest) {
+export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions);
 
     if (!session?.user) {
-      return new NextResponse('Unauthorized', { status: 401 });
+      return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    if (session.user.role !== 'TEACHER') {
-      return new NextResponse('Forbidden', { status: 403 });
-    }
+    const { searchParams } = new URL(request.url);
+    const teacherId = searchParams.get("teacherId");
+    const subjectId = searchParams.get("subjectId");
 
-    const { searchParams } = new URL(req.url);
-    const subjectId = searchParams.get('subjectId');
-    const classId = searchParams.get('classId');
-
-    if (!subjectId || !classId) {
-      return new NextResponse('Missing required parameters', { status: 400 });
-    }
-
-    // Verify that the teacher has access to the subject and class
-    const teacher = await prisma.teacher.findFirst({
-      where: {
-        userId: session.user.id,
-        subjects: {
-          some: {
-            id: subjectId,
-            classId: classId,
-          },
-        },
-      },
-    });
-
-    if (!teacher) {
-      return new NextResponse('Forbidden', { status: 403 });
+    if (!teacherId && !subjectId) {
+      return new NextResponse("Missing required parameters", { status: 400 });
     }
 
     const assignments = await prisma.assignment.findMany({
       where: {
-        subjectId,
-        student: {
-          classId,
-        },
+        ...(teacherId && { teacherId }),
+        ...(subjectId && { subjectId }),
       },
       include: {
-        student: {
+        subject: {
           include: {
-            user: {
-              select: {
-                firstName: true,
-                lastName: true,
-                email: true,
-              },
-            },
+            class: true,
           },
         },
       },
       orderBy: {
-        dueDate: 'desc',
+        createdAt: "desc",
       },
     });
 
     return NextResponse.json(assignments);
   } catch (error) {
-    console.error('Error in GET /api/assignments:', error);
-    return new NextResponse('Internal Server Error', { status: 500 });
+    console.error("[ASSIGNMENTS_GET]", error);
+    return new NextResponse("Internal Error", { status: 500 });
   }
 } 

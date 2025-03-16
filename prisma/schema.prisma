@@ -84,7 +84,7 @@ model Student {
   parent       Parent        @relation(fields: [parentId], references: [id])
   attendances  Attendance[]
   examResults  ExamResult[]
-  assignments  Assignment[]
+  submissions  AssignmentSubmission[]
   feePayments  FeePayment[]
 
   @@index([classId])
@@ -97,6 +97,7 @@ model Teacher {
   employeeId  String    @unique
   subjects    Subject[]
   classes     Class[]
+  assignments Assignment[]
   timetables  TeacherTimetable[]
   duties      TeacherDuty[]
   createdAt   DateTime  @default(now())
@@ -173,13 +174,34 @@ model Assignment {
   title       String
   description String?
   dueDate     DateTime
-  status      String   @default("PENDING") // PENDING, SUBMITTED, GRADED
-  studentId   String
+  teacherId   String
   subjectId   String
-  student     Student  @relation(fields: [studentId], references: [id])
+  teacher     Teacher  @relation(fields: [teacherId], references: [id])
   subject     Subject  @relation(fields: [subjectId], references: [id])
+  submissions AssignmentSubmission[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@index([teacherId])
+  @@index([subjectId])
+}
+
+model AssignmentSubmission {
+  id           String     @id @default(cuid())
+  assignmentId String
+  studentId    String
+  content      String
+  status       String     @default("SUBMITTED") // SUBMITTED, GRADED
+  grade        Float?
+  feedback     String?
+  assignment   Assignment @relation(fields: [assignmentId], references: [id])
+  student      Student    @relation(fields: [studentId], references: [id])
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@unique([assignmentId, studentId])
+  @@index([assignmentId])
+  @@index([studentId])
 }
 
 model FeePayment {

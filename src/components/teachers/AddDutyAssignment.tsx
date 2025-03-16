@@ -42,11 +42,12 @@ const formSchema = z.object({
 });
 
 interface AddDutyAssignmentProps {
-  teacherId: string;
+  id: string;
 }
 
-export default function AddDutyAssignment({ teacherId }: AddDutyAssignmentProps) {
+export default function AddDutyAssignment({ id }: AddDutyAssignmentProps) {
   const [open, setOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -62,8 +63,10 @@ export default function AddDutyAssignment({ teacherId }: AddDutyAssignmentProps)
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsSubmitting(true);
+
     try {
-      const response = await fetch(`/api/teachers/${teacherId}/duties`, {
+      const response = await fetch(`/api/teachers/${id}/duties`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -82,6 +85,8 @@ export default function AddDutyAssignment({ teacherId }: AddDutyAssignmentProps)
       router.refresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to add duty assignment');
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -234,7 +239,9 @@ export default function AddDutyAssignment({ teacherId }: AddDutyAssignmentProps)
               )}
             />
 
-            <Button type="submit" className="w-full">Add Duty</Button>
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSubmitting ? 'Adding...' : 'Add Duty'}
+            </Button>
           </form>
         </Form>
       </DialogContent>

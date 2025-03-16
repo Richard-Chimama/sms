@@ -40,13 +40,14 @@ const formSchema = z.object({
 });
 
 interface AddTimetableEntryProps {
-  teacherId: string;
+  id: string;
   subjects: Subject[];
   classes: Class[];
 }
 
-export default function AddTimetableEntry({ teacherId, subjects, classes }: AddTimetableEntryProps) {
+export default function AddTimetableEntry({ id, subjects, classes }: AddTimetableEntryProps) {
   const [open, setOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -61,8 +62,10 @@ export default function AddTimetableEntry({ teacherId, subjects, classes }: AddT
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsSubmitting(true);
+
     try {
-      const response = await fetch(`/api/teachers/${teacherId}/timetable`, {
+      const response = await fetch(`/api/teachers/${id}/timetable`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -81,6 +84,8 @@ export default function AddTimetableEntry({ teacherId, subjects, classes }: AddT
       router.refresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to add timetable entry');
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -135,7 +140,7 @@ export default function AddTimetableEntry({ teacherId, subjects, classes }: AddT
                     <SelectContent>
                       {classes.map((class_) => (
                         <SelectItem key={class_.id} value={class_.id}>
-                          Class {class_.grade}-{class_.section}
+                          Grade {class_.grade}-{class_.section}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -206,7 +211,9 @@ export default function AddTimetableEntry({ teacherId, subjects, classes }: AddT
               )}
             />
 
-            <Button type="submit" className="w-full">Add Entry</Button>
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSubmitting ? 'Adding...' : 'Add Entry'}
+            </Button>
           </form>
         </Form>
       </DialogContent>

@@ -1,6 +1,6 @@
 'use client';
 
-import { Teacher, Class, Student, Subject } from '@prisma/client';
+import { Teacher, Class, Student, Subject, Assignment, AssignmentSubmission } from '@prisma/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -16,13 +16,14 @@ import {
 } from '@/components/ui/table';
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { Check, X, Clock, FileText, CalendarDays } from 'lucide-react';
+import { Check, X, Clock, FileText, CalendarDays, Plus } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import AssignmentList from '@/components/assignments/AssignmentList';
+import AddAssignment from '@/components/assignments/AddAssignment';
 
 type StudentWithUser = Student & {
   user: {
@@ -33,23 +34,30 @@ type StudentWithUser = Student & {
   };
 };
 
-type ClassWithStudents = Class & {
-  students: StudentWithUser[];
-  subjects: (Subject & { class: Class })[];
-};
-
-type TeacherWithClasses = Teacher & {
-  classes: ClassWithStudents[];
+type AssignmentWithDetails = Assignment & {
+  subject: {
+    name: string;
+    class: {
+      grade: string;
+      section: string;
+    };
+  };
+  submissions: AssignmentSubmission[];
 };
 
 interface MyClassesViewProps {
-  teacher: TeacherWithClasses;
+  teacher: Teacher & {
+    classes: (Class & {
+      subjects: Subject[];
+      students: StudentWithUser[];
+    })[];
+  };
 }
 
 type AttendanceStatus = 'PRESENT' | 'ABSENT' | 'LATE';
 
 type StudentAttendance = {
-  id: string;
+  id?: string;
   status: AttendanceStatus;
 };
 
@@ -61,33 +69,14 @@ type AttendanceResponse = {
   };
 };
 
-type AssignmentWithStudent = {
-  id: string;
-  title: string;
-  description: string | null;
-  dueDate: Date;
-  status: string;
-  createdAt: Date;
-  updatedAt: Date;
-  subjectId: string;
-  studentId: string;
-  student: {
-    id: string;
-    user: {
-      firstName: string | null;
-      lastName: string | null;
-      email: string | null;
-    };
-  };
-};
-
 export default function MyClassesView({ teacher }: MyClassesViewProps) {
   const [activeTab, setActiveTab] = useState<'attendance' | 'assignments'>('attendance');
   const [date, setDate] = useState<Date>(new Date());
   const [attendanceMap, setAttendanceMap] = useState<Record<string, StudentAttendance>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [assignments, setAssignments] = useState<AssignmentWithStudent[]>([]);
+  const [assignments, setAssignments] = useState<AssignmentWithDetails[]>([]);
   const [selectedSubject, setSelectedSubject] = useState<string>('');
+  const [isAddingAssignment, setIsAddingAssignment] = useState(false);
 
   // Function to fetch existing attendance for a class on a specific date
   const fetchAttendance = async (classId: string, selectedDate: Date) => {
@@ -365,13 +354,32 @@ export default function MyClassesView({ teacher }: MyClassesViewProps) {
                             ))}
                           </SelectContent>
                         </Select>
+                        {selectedSubject && (
+                          <Button onClick={() => setIsAddingAssignment(true)}>
+                            <Plus className="mr-2 h-4 w-4" />
+                            Add Assignment
+                          </Button>
+                        )}
                       </div>
 
                       {selectedSubject ? (
-                        <AssignmentList
-                          subjectId={selectedSubject}
-                          assignments={assignments}
-                        />
+                        <>
+                          <AssignmentList
+                            subjectId={selectedSubject}
+                            assignments={assignments}
+                          />
+                          {isAddingAssignment && (
+                            <AddAssignment
+                              teacherId={teacher.id}
+                              subjectId={selectedSubject}
+                              onClose={() => setIsAddingAssignment(false)}
+                              onSuccess={async () => {
+                                setIsAddingAssignment(false);
+                                await fetchAssignments(selectedSubject);
+                              }}
+                            />
+                          )}
+                        </>
                       ) : (
                         <div className="text-center py-8 text-gray-500">
                           {class_.subjects.filter((subject) => subject.classId === class_.id).length === 0 
