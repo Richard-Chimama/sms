@@ -23,7 +23,7 @@ const teacherLinks = [
 
 const studentLinks = [
   { href: '/dashboard', label: 'Dashboard' },
-  { href: '/my-classes', label: 'My Classes' },
+  { href: '/my-class', label: 'My Class' },
   { href: '/assignments', label: 'Assignments' },
   { href: '/exams', label: 'Exams' },
   { href: '/attendance', label: 'Attendance' },
