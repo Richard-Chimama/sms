@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/table';
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { Check, X, Clock, FileText, CalendarDays, Plus } from 'lucide-react';
+import { Check, X, Clock, FileText, CalendarDays, Plus, CalendarIcon } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -42,7 +42,14 @@ type AssignmentWithDetails = Assignment & {
       section: string;
     };
   };
-  submissions: AssignmentSubmission[];
+  submissions: (AssignmentSubmission & {
+    student: {
+      user: {
+        firstName: string | null;
+        lastName: string | null;
+      };
+    };
+  })[];
 };
 
 interface MyClassesViewProps {
@@ -184,21 +191,25 @@ export default function MyClassesView({ teacher }: MyClassesViewProps) {
           <Tabs defaultValue={teacher.classes[0]?.id}>
             <TabsList className="grid grid-cols-2 lg:grid-cols-4">
               {teacher.classes.map((class_) => (
-                <TabsTrigger key={class_.id} value={class_.id}>
+                <TabsTrigger 
+                  key={class_.id} 
+                  value={class_.id}
+                  className="data-[state=active]:text-primary"
+                >
                   Grade {class_.grade}-{class_.section}
                 </TabsTrigger>
               ))}
             </TabsList>
 
             {teacher.classes.map((class_) => (
-              <TabsContent key={class_.id} value={class_.id}>
+              <TabsContent key={class_.id} value={class_.id} className="mt-6">
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
                     <div>
                       <h3 className="text-lg font-semibold">
                         Grade {class_.grade}-{class_.section}
                       </h3>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-muted-foreground">
                         {class_.students.length} Students
                       </p>
                     </div>
@@ -206,13 +217,20 @@ export default function MyClassesView({ teacher }: MyClassesViewProps) {
                       <Tabs
                         value={activeTab}
                         onValueChange={(value) => setActiveTab(value as 'attendance' | 'assignments')}
+                        className="relative"
                       >
-                        <TabsList>
-                          <TabsTrigger value="attendance">
+                        <TabsList className="w-full">
+                          <TabsTrigger 
+                            value="attendance"
+                            className="data-[state=active]:text-primary"
+                          >
                             <CalendarDays className="w-4 h-4 mr-2" />
                             Attendance
                           </TabsTrigger>
-                          <TabsTrigger value="assignments">
+                          <TabsTrigger 
+                            value="assignments"
+                            className="data-[state=active]:text-primary"
+                          >
                             <FileText className="w-4 h-4 mr-2" />
                             Assignments
                           </TabsTrigger>
@@ -226,108 +244,132 @@ export default function MyClassesView({ teacher }: MyClassesViewProps) {
                       <div className="flex justify-between items-center">
                         <Popover>
                           <PopoverTrigger asChild>
-                            <Button variant="outline">
-                              <CalendarDays className="mr-2 h-4 w-4" />
-                              {format(date, 'PPP')}
+                            <Button 
+                              variant="outline" 
+                              className={cn(
+                                "justify-start text-left font-normal",
+                                !date && "text-muted-foreground"
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {format(date, "PPP")}
                             </Button>
                           </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0">
+                          <PopoverContent 
+                            className="w-auto p-0" 
+                            align="start"
+                          >
                             <Calendar
                               mode="single"
                               selected={date}
-                              onSelect={(date) => {
-                                if (date) {
-                                  setDate(date);
-                                  fetchAttendance(class_.id, date);
+                              onSelect={(newDate) => {
+                                if (newDate) {
+                                  setDate(newDate);
+                                  fetchAttendance(class_.id, newDate);
                                 }
                               }}
                               initialFocus
+                              className="rounded-md border"
+                              classNames={{
+                                day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
+                                day_today: "bg-accent text-accent-foreground",
+                                cell: "h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+                                day: "h-9 w-9 p-0 font-normal",
+                                day_range_end: "day-range-end",
+                                day_outside: "day-outside"
+                              }}
                             />
                           </PopoverContent>
                         </Popover>
                         <Button
                           onClick={() => submitAttendance(class_.id, class_.students)}
                           disabled={isSubmitting}
+                          variant="default"
                         >
                           Save Attendance
                         </Button>
                       </div>
 
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Student</TableHead>
-                            <TableHead>Roll Number</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {class_.students.map((student) => (
-                            <TableRow key={student.id}>
-                              <TableCell className="flex items-center gap-3">
-                                <Avatar className="h-8 w-8">
-                                  <AvatarImage
-                                    src={student.user.image || ''}
-                                    alt={`${student.user.firstName} ${student.user.lastName}`}
-                                  />
-                                  <AvatarFallback>
-                                    {student.user.firstName?.[0]}
-                                    {student.user.lastName?.[0]}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <div>
-                                  <p className="font-medium">
-                                    {student.user.firstName} {student.user.lastName}
-                                  </p>
-                                  <p className="text-sm text-gray-500">
-                                    {student.user.email}
-                                  </p>
-                                </div>
-                              </TableCell>
-                              <TableCell>{student.rollNumber}</TableCell>
-                              <TableCell>
-                                <Badge
-                                  variant="outline"
-                                  className={cn(
-                                    attendanceMap[student.id]?.status === 'PRESENT' && 'bg-green-50 text-green-700 border-green-200',
-                                    attendanceMap[student.id]?.status === 'ABSENT' && 'bg-red-50 text-red-700 border-red-200',
-                                    attendanceMap[student.id]?.status === 'LATE' && 'bg-yellow-50 text-yellow-700 border-yellow-200'
-                                  )}
-                                >
-                                  {attendanceMap[student.id]?.status === 'PRESENT' && (
-                                    <Check className="w-4 h-4 mr-1" />
-                                  )}
-                                  {attendanceMap[student.id]?.status === 'ABSENT' && (
-                                    <X className="w-4 h-4 mr-1" />
-                                  )}
-                                  {attendanceMap[student.id]?.status === 'LATE' && (
-                                    <Clock className="w-4 h-4 mr-1" />
-                                  )}
-                                  {attendanceMap[student.id]?.status || 'PRESENT'}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                <Select
-                                  value={attendanceMap[student.id]?.status || 'PRESENT'}
-                                  onValueChange={(value: AttendanceStatus) =>
-                                    updateAttendanceStatus(student.id, value)
-                                  }
-                                >
-                                  <SelectTrigger className="w-32">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="PRESENT">Present</SelectItem>
-                                    <SelectItem value="ABSENT">Absent</SelectItem>
-                                    <SelectItem value="LATE">Late</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
+                      <Card>
+                        <CardContent className="p-0">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Student</TableHead>
+                                <TableHead>Roll Number</TableHead>
+                                <TableHead>Status</TableHead>
+                                <TableHead>Actions</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {class_.students.map((student) => (
+                                <TableRow key={student.id}>
+                                  <TableCell className="flex items-center gap-3">
+                                    <Avatar>
+                                      <AvatarImage
+                                        src={student.user.image || ''}
+                                        alt={`${student.user.firstName} ${student.user.lastName}`}
+                                      />
+                                      <AvatarFallback>
+                                        {student.user.firstName?.[0]}
+                                        {student.user.lastName?.[0]}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <div>
+                                      <p className="font-medium">
+                                        {student.user.firstName} {student.user.lastName}
+                                      </p>
+                                      <p className="text-muted-foreground">
+                                        {student.user.email}
+                                      </p>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>{student.rollNumber}</TableCell>
+                                  <TableCell>
+                                    <Badge
+                                      variant={
+                                        attendanceMap[student.id]?.status === 'PRESENT'
+                                          ? 'default'
+                                          : attendanceMap[student.id]?.status === 'ABSENT'
+                                          ? 'destructive'
+                                          : 'secondary'
+                                      }
+                                    >
+                                      {attendanceMap[student.id]?.status === 'PRESENT' && (
+                                        <Check className="w-4 h-4 mr-1" />
+                                      )}
+                                      {attendanceMap[student.id]?.status === 'ABSENT' && (
+                                        <X className="w-4 h-4 mr-1" />
+                                      )}
+                                      {attendanceMap[student.id]?.status === 'LATE' && (
+                                        <Clock className="w-4 h-4 mr-1" />
+                                      )}
+                                      {attendanceMap[student.id]?.status || 'PRESENT'}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Select
+                                      value={attendanceMap[student.id]?.status || 'PRESENT'}
+                                      onValueChange={(value: AttendanceStatus) =>
+                                        updateAttendanceStatus(student.id, value)
+                                      }
+                                    >
+                                      <SelectTrigger className="w-32">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="PRESENT">Present</SelectItem>
+                                        <SelectItem value="ABSENT">Absent</SelectItem>
+                                        <SelectItem value="LATE">Late</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </CardContent>
+                      </Card>
                     </div>
                   )}
 
@@ -338,7 +380,7 @@ export default function MyClassesView({ teacher }: MyClassesViewProps) {
                           value={selectedSubject}
                           onValueChange={(value) => {
                             setSelectedSubject(value);
-                            setAssignments([]); // Reset assignments when subject changes
+                            setAssignments([]);
                           }}
                         >
                           <SelectTrigger className="w-[200px]">
@@ -381,7 +423,7 @@ export default function MyClassesView({ teacher }: MyClassesViewProps) {
                           )}
                         </>
                       ) : (
-                        <div className="text-center py-8 text-gray-500">
+                        <div className="text-center py-8 text-muted-foreground">
                           {class_.subjects.filter((subject) => subject.classId === class_.id).length === 0 
                             ? "No subjects available for this class"
                             : "Select a subject to view assignments"
