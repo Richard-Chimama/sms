@@ -17,10 +17,8 @@ const adminLinks = [
 const teacherLinks = [
   { href: '/dashboard', label: 'Dashboard' },
   { href: '/my-classes', label: 'My Classes' },
-  { href: '/attendance', label: 'Attendance' },
   { href: '/assignments', label: 'Assignments' },
   { href: '/exams', label: 'Exams' },
-  { href: '/duty-log', label: 'Duty Log' },
 ];
 
 const studentLinks = [
