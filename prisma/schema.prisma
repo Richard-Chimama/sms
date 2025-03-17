@@ -109,6 +109,7 @@ model Teacher {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  materials   MaterialResource[]
 }
 
 model Parent {
@@ -131,6 +132,7 @@ model Class {
   timetables  TeacherTimetable[]
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
+  materials   MaterialResource[]
 
   @@unique([grade, section])
 }
@@ -149,6 +151,7 @@ model Subject {
   timetables  TeacherTimetable[]
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
+  materials   MaterialResource[]
 }
 
 model Attendance {
@@ -479,4 +482,27 @@ model Notification {
   @@index([senderId])
   @@index([type])
   @@index([isRead])
+}
+
+model MaterialResource {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  type        ResourceType
+  url         String   // For external links or file paths
+  subject     Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  subjectId   String
+  teacher     Teacher  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  teacherId   String
+  class       Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  classId     String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+enum ResourceType {
+  PDF
+  VIDEO
+  LINK
+  OTHER
 }

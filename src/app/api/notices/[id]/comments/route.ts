@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/db/prisma';
 import { z } from 'zod';
 import { Session } from 'next-auth';
+import { NoticeCategory } from '@prisma/client';
 
 const commentSchema = z.object({
   content: z.string().min(1, 'Comment cannot be empty'),
@@ -26,15 +27,40 @@ export async function POST(
     const body = await req.json();
     const validatedData = commentSchema.parse(body);
 
-    // Check if notice exists
+    // Check if notice exists and if the user can access it
     const notice = await prisma.notice.findUnique({
       where: { id: params.id },
+      select: {
+        id: true,
+        category: true,
+      },
     });
 
     if (!notice) {
       return NextResponse.json(
         { error: 'Notice not found' },
         { status: 404 }
+      );
+    }
+
+    // Check if user has access to this notice
+    const userCategory = session.user.role === 'STUDENT' 
+      ? NoticeCategory.STUDENT
+      : session.user.role === 'TEACHER'
+      ? NoticeCategory.TEACHER
+      : session.user.role === 'PARENT'
+      ? NoticeCategory.PARENT
+      : NoticeCategory.GENERAL;
+
+    const canAccess = 
+      notice.category === NoticeCategory.GENERAL ||
+      notice.category === userCategory ||
+      session.user.role === 'ADMIN';
+
+    if (!canAccess) {
+      return NextResponse.json(
+        { error: 'You do not have permission to comment on this notice' },
+        { status: 403 }
       );
     }
 
@@ -86,6 +112,43 @@ export async function GET(
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
+      );
+    }
+
+    // Check if notice exists and if the user can access it
+    const notice = await prisma.notice.findUnique({
+      where: { id: params.id },
+      select: {
+        id: true,
+        category: true,
+      },
+    });
+
+    if (!notice) {
+      return NextResponse.json(
+        { error: 'Notice not found' },
+        { status: 404 }
+      );
+    }
+
+    // Check if user has access to this notice
+    const userCategory = session.user.role === 'STUDENT' 
+      ? NoticeCategory.STUDENT
+      : session.user.role === 'TEACHER'
+      ? NoticeCategory.TEACHER
+      : session.user.role === 'PARENT'
+      ? NoticeCategory.PARENT
+      : NoticeCategory.GENERAL;
+
+    const canAccess = 
+      notice.category === NoticeCategory.GENERAL ||
+      notice.category === userCategory ||
+      session.user.role === 'ADMIN';
+
+    if (!canAccess) {
+      return NextResponse.json(
+        { error: 'You do not have permission to view comments on this notice' },
+        { status: 403 }
       );
     }
 

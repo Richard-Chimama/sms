@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { NoticeCategory } from '@prisma/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { format } from 'date-fns';
@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { useSession } from 'next-auth/react';
+import { useSearchParams } from 'next/navigation';
 
 type NoticeComment = {
   id: string;
@@ -51,10 +52,19 @@ export default function NoticeList({ notices: initialNotices, userRole, category
   const [error, setError] = useState<string | null>(null);
   const [commentInputs, setCommentInputs] = useState<{ [key: string]: string }>({});
   const [submittingComment, setSubmittingComment] = useState<{ [key: string]: boolean }>({});
+  const searchParams = useSearchParams();
+  const highlightedNoticeId = searchParams.get('highlight');
+  const highlightedNoticeRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setNotices(initialNotices);
   }, [initialNotices]);
+
+  useEffect(() => {
+    if (highlightedNoticeId && highlightedNoticeRef.current) {
+      highlightedNoticeRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [highlightedNoticeId]);
 
   useEffect(() => {
     if (!category) return;
@@ -175,7 +185,14 @@ export default function NoticeList({ notices: initialNotices, userRole, category
   return (
     <div className="space-y-4">
       {notices.map((notice) => (
-        <Card key={notice.id} className="relative">
+        <Card 
+          key={notice.id} 
+          className={cn(
+            "relative transition-colors duration-300",
+            notice.id === highlightedNoticeId && "bg-muted/50 ring-2 ring-primary"
+          )}
+          ref={notice.id === highlightedNoticeId ? highlightedNoticeRef : null}
+        >
           {notice.pinned && (
             <div className="absolute top-2 right-2">
               <PinIcon className="h-4 w-4 text-blue-500" />

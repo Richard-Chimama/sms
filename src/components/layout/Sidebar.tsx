@@ -21,6 +21,7 @@ const teacherLinks = [
   { href: '/my-classes', label: 'My Classes' },
   { href: '/assignments', label: 'Assignments' },
   { href: '/exams', label: 'Exams' },
+  { href: '/teacher/materials', label: 'Materials' },
   { href: '/chats', label: 'Chats' },
 ];
 
@@ -28,6 +29,7 @@ const studentLinks = [
   { href: '/dashboard', label: 'Dashboard' },
   { href: '/my-class', label: 'My Class' },
   { href: '/student-exams', label: 'Exams' },
+  { href: '/materials', label: 'Class Materials' },
   { href: '/chats', label: 'Chats' },
 ];
 

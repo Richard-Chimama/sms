@@ -3,8 +3,9 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/db/prisma';
 import { z } from 'zod';
-import { NoticeCategory } from '@prisma/client';
+import { NoticeCategory, NotificationType } from '@prisma/client';
 import { Session } from 'next-auth';
+import { pusherServer } from '@/lib/pusher';
 
 const roleToCategory = {
   ADMIN: NoticeCategory.GENERAL,
@@ -35,6 +36,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const validatedData = createNoticeSchema.parse(body);
 
+    // Create the notice
     const notice = await prisma.notice.create({
       data: {
         title: validatedData.title,
@@ -57,6 +59,51 @@ export async function POST(req: NextRequest) {
         },
       },
     });
+
+    // Get all users except the notice author
+    const users = await prisma.user.findMany({
+      where: {
+        id: { not: session.user.id },
+        role: validatedData.category === NoticeCategory.GENERAL
+          ? undefined // Send to all users if GENERAL
+          : validatedData.category === NoticeCategory.STUDENT
+          ? 'STUDENT'
+          : validatedData.category === NoticeCategory.TEACHER
+          ? 'TEACHER'
+          : validatedData.category === NoticeCategory.PARENT
+          ? 'PARENT'
+          : undefined,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    // Create notifications for all relevant users
+    await prisma.$transaction(
+      users.map((user) =>
+        prisma.notification.create({
+          data: {
+            type: NotificationType.NOTICE,
+            title: `New Notice: ${notice.title}`,
+            content: notice.content.slice(0, 100) + (notice.content.length > 100 ? '...' : ''),
+            userId: user.id,
+            senderId: session.user.id,
+            link: `/notices?highlight=${notice.id}`,
+          },
+        })
+      )
+    );
+
+    // Trigger Pusher events for real-time notifications
+    for (const user of users) {
+      await pusherServer.trigger(`private-user-${user.id}`, 'notification', {
+        type: NotificationType.NOTICE,
+        title: `New Notice: ${notice.title}`,
+        content: notice.content.slice(0, 100) + (notice.content.length > 100 ? '...' : ''),
+        link: `/notices?highlight=${notice.id}`,
+      });
+    }
 
     return NextResponse.json(notice, { status: 201 });
   } catch (error) {
