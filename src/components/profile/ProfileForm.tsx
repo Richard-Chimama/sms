@@ -81,7 +81,7 @@ export default function ProfileForm({ user }: ProfileFormProps) {
       <div className="flex items-center gap-6">
         <Avatar className="h-24 w-24">
           <AvatarImage src={user.image || ''} alt={user.firstName || ''} />
-          <AvatarFallback>
+          <AvatarFallback className="text-black">
             {user.firstName?.[0]}
             {user.lastName?.[0]}
           </AvatarFallback>
@@ -132,7 +132,7 @@ export default function ProfileForm({ user }: ProfileFormProps) {
                 <FormItem>
                   <FormLabel>First Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter your first name" {...field} />
+                    <Input placeholder="Enter your first name" className="text-black" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -146,7 +146,7 @@ export default function ProfileForm({ user }: ProfileFormProps) {
                 <FormItem>
                   <FormLabel>Last Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter your last name" {...field} />
+                    <Input placeholder="Enter your last name" className="text-black" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -161,7 +161,7 @@ export default function ProfileForm({ user }: ProfileFormProps) {
               <FormItem>
                 <FormLabel>Email</FormLabel>
                 <FormControl>
-                  <Input placeholder="Enter your email" type="email" {...field} />
+                  <Input placeholder="Enter your email" type="email" className="text-black" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

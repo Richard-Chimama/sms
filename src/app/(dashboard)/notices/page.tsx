@@ -3,9 +3,8 @@ import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/db/prisma';
 import NoticeList from '@/components/notices/NoticeList';
 import CreateNoticeButton from '@/components/notices/CreateNoticeButton';
-import { NoticeCategory, NotificationType } from '@prisma/client';
+import { NoticeCategory } from '@prisma/client';
 import { redirect } from 'next/navigation';
-import { Session } from 'next-auth';
 
 const roleToCategory = {
   ADMIN: NoticeCategory.GENERAL,
@@ -14,33 +13,14 @@ const roleToCategory = {
   PARENT: NoticeCategory.PARENT,
 } as const;
 
-export default async function NoticesPage({
-  searchParams,
-}: {
-  searchParams: { highlight?: string };
-}) {
-  const session = (await getServerSession(authOptions)) as Session;
+export default async function NoticesPage() {
+  const session = await getServerSession(authOptions);
 
   if (!session?.user) {
     redirect('/auth/signin');
   }
 
   const userCategory = roleToCategory[session.user.role as keyof typeof roleToCategory] || NoticeCategory.GENERAL;
-
-  // If there's a highlight parameter, mark the corresponding notification as read
-  if (searchParams.highlight) {
-    await prisma.notification.updateMany({
-      where: {
-        userId: session.user.id,
-        type: NotificationType.NOTICE,
-        link: `/notices?highlight=${searchParams.highlight}`,
-        isRead: false,
-      },
-      data: {
-        isRead: true,
-      },
-    });
-  }
 
   const notices = await prisma.notice.findMany({
     where: {

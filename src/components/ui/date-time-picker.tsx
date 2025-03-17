@@ -21,16 +21,6 @@ interface DateTimePickerProps {
 export function DateTimePicker({ value, onChange }: DateTimePickerProps) {
   const [selectedDateTime, setSelectedDateTime] = React.useState<Date>(value);
 
-  // Update the parent's state when our state changes
-  React.useEffect(() => {
-    onChange(selectedDateTime);
-  }, [selectedDateTime, onChange]);
-
-  // Update our state when the parent's value changes
-  React.useEffect(() => {
-    setSelectedDateTime(value);
-  }, [value]);
-
   const handleDateSelect = (date: Date | undefined) => {
     if (date) {
       const newDateTime = new Date(date);
@@ -38,6 +28,7 @@ export function DateTimePicker({ value, onChange }: DateTimePickerProps) {
       newDateTime.setHours(selectedDateTime.getHours());
       newDateTime.setMinutes(selectedDateTime.getMinutes());
       setSelectedDateTime(newDateTime);
+      onChange(newDateTime);
     }
   };
 
@@ -48,6 +39,7 @@ export function DateTimePicker({ value, onChange }: DateTimePickerProps) {
       newDateTime.setHours(hours);
       newDateTime.setMinutes(minutes);
       setSelectedDateTime(newDateTime);
+      onChange(newDateTime);
     }
   };
 

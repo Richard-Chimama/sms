@@ -41,8 +41,8 @@ export function StudentExamList({ exams }: StudentExamListProps) {
     if (exam.submission?.status === ExamSubmissionStatus.GRADED) {
       return (
         <Badge variant="default" className="gap-1">
-          <CheckCircle className="h-4 w-4" />
-          Graded ({exam.submission.totalMarks} marks)
+          <CheckCircle className="h-4 w-4 text-white" />
+          <span className="text-white">Graded ({exam.submission.totalMarks} marks)</span>
         </Badge>
       );
     }
@@ -50,8 +50,8 @@ export function StudentExamList({ exams }: StudentExamListProps) {
     if (exam.submission?.status === ExamSubmissionStatus.SUBMITTED) {
       return (
         <Badge variant="secondary" className="gap-1">
-          <CheckCircle className="h-4 w-4" />
-          Submitted
+          <CheckCircle className="h-4 w-4 text-white" />
+          <span className="text-white">Submitted</span>
         </Badge>
       );
     }
@@ -59,8 +59,8 @@ export function StudentExamList({ exams }: StudentExamListProps) {
     if (exam.submission?.status === ExamSubmissionStatus.IN_PROGRESS) {
       return (
         <Badge variant="secondary" className="gap-1">
-          <Clock className="h-4 w-4" />
-          In Progress
+          <Clock className="h-4 w-4 text-white" />
+          <span className="text-white">In Progress</span>
         </Badge>
       );
     }
@@ -68,8 +68,8 @@ export function StudentExamList({ exams }: StudentExamListProps) {
     if (now < start) {
       return (
         <Badge variant="outline" className="gap-1">
-          <Clock className="h-4 w-4" />
-          Upcoming
+          <Clock className="h-4 w-4 text-white" />
+          <span className="text-white">Upcoming</span>
         </Badge>
       );
     }
@@ -77,16 +77,16 @@ export function StudentExamList({ exams }: StudentExamListProps) {
     if (now > end) {
       return (
         <Badge variant="destructive" className="gap-1">
-          <AlertCircle className="h-4 w-4" />
-          Expired
+          <AlertCircle className="h-4 w-4 text-white" />
+          <span className="text-white">Expired</span>
         </Badge>
       );
     }
 
     return (
       <Badge variant="default" className="gap-1 bg-green-500">
-        <Clock className="h-4 w-4" />
-        Available
+        <Clock className="h-4 w-4 text-white" />
+        <span className="text-white">Available</span>
       </Badge>
     );
   };

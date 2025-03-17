@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 import { Question, QuestionType } from '@prisma/client';
+import { JsonValue } from '@prisma/client/runtime/library';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -25,14 +26,16 @@ type QuestionFormValues = z.infer<typeof questionFormSchema>;
 
 interface EditQuestionProps {
   examId: string;
-  question: Question & { options?: string[] };
+  question: Question & { options?: JsonValue };
   onClose: () => void;
   onSuccess: () => void;
 }
 
 export default function EditQuestion({ examId, question, onClose, onSuccess }: EditQuestionProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [options, setOptions] = useState<string[]>(question.options || []);
+  const [options, setOptions] = useState<string[]>(
+    Array.isArray(question.options) ? question.options as string[] : []
+  );
   const [newOption, setNewOption] = useState('');
 
   const form = useForm<QuestionFormValues>({
@@ -40,19 +43,13 @@ export default function EditQuestion({ examId, question, onClose, onSuccess }: E
     defaultValues: {
       text: question.text,
       type: question.type,
-      options: question.options || [],
+      options: Array.isArray(question.options) ? question.options as string[] : [],
       answer: question.answer,
       marks: question.marks,
     },
   });
 
   const questionType = form.watch('type');
-
-  useEffect(() => {
-    if (question.options) {
-      setOptions(question.options);
-    }
-  }, [question.options]);
 
   const addOption = () => {
     if (newOption.trim()) {
