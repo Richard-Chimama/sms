@@ -8,9 +8,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Edit2, Plus, Trash2 } from 'lucide-react';
+import { Edit2, Plus, Trash2, Users } from 'lucide-react';
 import AddQuestion from './AddQuestion';
 import EditQuestion from './EditQuestion';
+import { useRouter } from 'next/navigation';
 
 interface ExamWithDetails extends Exam {
   subject: {
@@ -27,6 +28,7 @@ interface ExamDetailsProps {
 }
 
 export function ExamDetails({ exam }: ExamDetailsProps) {
+  const router = useRouter();
   const [isAddingQuestion, setIsAddingQuestion] = useState(false);
   const [isEditingQuestion, setIsEditingQuestion] = useState(false);
   const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null);
@@ -65,9 +67,18 @@ export function ExamDetails({ exam }: ExamDetailsProps) {
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader>
-          <CardTitle>{exam.title}</CardTitle>
-          <CardDescription>{exam.description}</CardDescription>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>{exam.title}</CardTitle>
+            <CardDescription>{exam.description}</CardDescription>
+          </div>
+          <Button
+            variant="outline"
+            onClick={() => router.push(`/exams/${exam.id}/submissions`)}
+          >
+            <Users className="mr-2 h-4 w-4" />
+            View Submissions
+          </Button>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2">
