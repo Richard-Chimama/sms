@@ -1,9 +1,8 @@
 import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import prisma from '@/lib/db/prisma';
-import { ExamTakingInterface } from '@/components/exams/ExamTakingInterface';
-import { ExamSubmissionStatus, QuestionType } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
+import { ExamDetails } from '@/components/exams/ExamDetails';
 import { Session } from 'next-auth';
 
 interface ExamPageProps {
@@ -19,107 +18,51 @@ export default async function ExamPage({ params }: ExamPageProps) {
     redirect('/auth/signin');
   }
 
-  if (session.user.role !== 'STUDENT') {
+  if (session.user.role !== 'TEACHER') {
     redirect('/dashboard');
   }
 
-  // Get the student
-  const student = await prisma.student.findUnique({
-    where: {
-      userId: session.user.id,
-    },
-  });
-
-  if (!student) {
-    redirect('/dashboard');
-  }
-
-  // Get the exam with questions and existing submission
+  // Get the exam with details
   const exam = await prisma.exam.findUnique({
     where: {
       id: params.id,
     },
     include: {
-      subject: true,
+      subject: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
       questions: {
         orderBy: {
           createdAt: 'asc',
         },
-        select: {
-          id: true,
-          text: true,
-          type: true,
-          options: true,
-          marks: true,
-        },
       },
-      submissions: {
-        where: {
-          studentId: student.id,
-        },
-        take: 1,
-        include: {
-          answers: true,
+      _count: {
+        select: {
+          questions: true,
+          submissions: true,
         },
       },
     },
   });
 
   if (!exam) {
-    redirect('/my-class');
+    redirect('/exams');
   }
 
-  // Check if exam is available
-  const now = new Date();
-  const startDate = new Date(exam.startDate);
-  const endDate = new Date(exam.endDate);
-
-  if (now < startDate || now > endDate) {
-    redirect('/my-class');
-  }
-
-  // Get or create submission
-  let submission = exam.submissions[0];
-  if (!submission) {
-    submission = await prisma.examSubmission.create({
-      data: {
-        examId: exam.id,
-        studentId: student.id,
-        status: ExamSubmissionStatus.IN_PROGRESS,
-        startedAt: now,
-      },
-      include: {
-        answers: true,
-      },
-    });
-  } else if (submission.status === ExamSubmissionStatus.SUBMITTED || submission.status === ExamSubmissionStatus.GRADED) {
-    redirect('/my-class');
-  }
-
-  // Transform the data to match the ExamTakingInterface props
-  const transformedSubmission = {
-    id: submission.id,
-    status: submission.status === ExamSubmissionStatus.IN_PROGRESS ? 'IN_PROGRESS' as const : 'SUBMITTED' as const,
-    answers: submission.answers?.map(answer => ({
-      questionId: answer.questionId,
-      answer: answer.answer,
-    })),
-  };
-
-  const transformedQuestions = exam.questions.map(question => ({
-    id: question.id,
-    text: question.text,
-    type: question.type === QuestionType.MULTIPLE_CHOICE ? 'MULTIPLE_CHOICE' as const : 'SHORT_ANSWER' as const,
-    options: question.options ? JSON.parse(question.options as string) : null,
-    marks: question.marks,
-  }));
+  // Calculate total marks
+  const totalMarks = exam.questions.reduce((sum, question) => sum + question.marks, 0);
 
   return (
-    <div className="container mx-auto py-6 max-w-4xl">
-      <ExamTakingInterface 
-        exam={exam} 
-        submission={transformedSubmission}
-        questions={transformedQuestions}
+    <div className="container py-6">
+      <ExamDetails 
+        exam={{
+          ...exam,
+          duration: 60, // Default duration in minutes
+          totalMarks,
+        }}
       />
     </div>
   );

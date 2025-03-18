@@ -92,7 +92,7 @@ export function StudentExamList({ exams }: StudentExamListProps) {
   };
 
   const handleStartExam = (examId: string) => {
-    router.push(`/exams/${examId}`);
+    router.push(`/student-exams/${examId}`);
   };
 
   const canStartExam = (exam: Exam) => {
