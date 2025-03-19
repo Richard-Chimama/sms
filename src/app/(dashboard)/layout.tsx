@@ -1,6 +1,6 @@
 import Header from '@/components/layout/Header';
 import Sidebar from '@/components/layout/Sidebar';
-import { getServerSession } from 'next-auth';
+import { getServerSession } from 'next-auth/next';
 import { redirect } from 'next/navigation';
 import { authOptions } from '@/lib/auth';
 
