@@ -83,26 +83,26 @@ export function SubmissionReview({ submission }: SubmissionReviewProps) {
   };
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Submission Details</CardTitle>
+    <div className="space-y-6 max-w-3xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
+      <Card className="shadow-lg">
+        <CardHeader className="space-y-2">
+          <CardTitle className="text-xl sm:text-2xl">Submission Details</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-2">
-            <div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1">
               <p className="text-sm font-medium">Student</p>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground break-words">
                 {submission.student.user.name}
               </p>
             </div>
-            <div>
+            <div className="space-y-1">
               <p className="text-sm font-medium">Subject</p>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground break-words">
                 {submission.exam.subject.name}
               </p>
             </div>
-            <div>
+            <div className="space-y-1">
               <p className="text-sm font-medium">Submitted At</p>
               <p className="text-sm text-muted-foreground">
                 {submission.submittedAt
@@ -110,9 +110,9 @@ export function SubmissionReview({ submission }: SubmissionReviewProps) {
                   : 'Not submitted'}
               </p>
             </div>
-            <div>
+            <div className="space-y-1">
               <p className="text-sm font-medium">Status</p>
-              <Badge variant="secondary">
+              <Badge variant="secondary" className="mt-1">
                 {submission.status.toLowerCase()}
               </Badge>
             </div>
@@ -127,23 +127,24 @@ export function SubmissionReview({ submission }: SubmissionReviewProps) {
           );
 
           return (
-            <Card key={question.id}>
+            <Card key={question.id} className="shadow-lg">
               <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span>Question {question.id}</span>
-                  <span className="text-sm text-muted-foreground">
+                <CardTitle className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <span className="text-base sm:text-lg">Question {question.id}</span>
+                  <Badge variant="secondary" className="w-fit">
                     {question.marks} marks
-                  </span>
+                  </Badge>
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <p>{question.text}</p>
+                  <p className="text-sm sm:text-base">{question.text}</p>
 
                   {question.type === QuestionType.MULTIPLE_CHOICE && (
                     <RadioGroup
                       value={answer?.answer || ''}
                       disabled
+                      className="space-y-3"
                     >
                       {(() => {
                         try {
@@ -152,12 +153,14 @@ export function SubmissionReview({ submission }: SubmissionReviewProps) {
                             : question.options;
                           return Array.isArray(options) 
                             ? options.map((option: string, index: number) => (
-                                <div key={index} className="flex items-center space-x-2">
+                                <div key={index} className="flex items-center space-x-3 p-2 hover:bg-muted/50 rounded-md">
                                   <RadioGroupItem
                                     value={option}
                                     id={`option-${index}`}
                                   />
-                                  <Label htmlFor={`option-${index}`}>{option}</Label>
+                                  <Label htmlFor={`option-${index}`} className="flex-1 cursor-pointer">
+                                    {option}
+                                  </Label>
                                 </div>
                               ))
                             : null;
@@ -171,24 +174,26 @@ export function SubmissionReview({ submission }: SubmissionReviewProps) {
 
                   {question.type === QuestionType.SHORT_ANSWER && (
                     <div className="p-4 bg-muted rounded-md">
-                      <p className="text-sm">{answer?.answer || 'No answer provided'}</p>
+                      <p className="text-sm whitespace-pre-wrap break-words">{answer?.answer || 'No answer provided'}</p>
                     </div>
                   )}
 
-                  <div className="flex items-center space-x-2">
-                    <Label htmlFor={`score-${question.id}`}>Score:</Label>
-                    <Input
-                      id={`score-${question.id}`}
-                      type="number"
-                      min={0}
-                      max={question.marks}
-                      value={scores[question.id] || ''}
-                      onChange={(e) => handleScoreChange(question.id, e.target.value)}
-                      className="w-24"
-                    />
-                    <span className="text-sm text-muted-foreground">
-                      / {question.marks}
-                    </span>
+                  <div className="flex flex-wrap items-center gap-3 mt-4">
+                    <Label htmlFor={`score-${question.id}`} className="min-w-20">Score:</Label>
+                    <div className="flex items-center gap-2 flex-1">
+                      <Input
+                        id={`score-${question.id}`}
+                        type="number"
+                        min={0}
+                        max={question.marks}
+                        value={scores[question.id] || ''}
+                        onChange={(e) => handleScoreChange(question.id, e.target.value)}
+                        className="w-24"
+                      />
+                      <span className="text-sm text-muted-foreground whitespace-nowrap">
+                        / {question.marks}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -197,8 +202,13 @@ export function SubmissionReview({ submission }: SubmissionReviewProps) {
         })}
       </div>
 
-      <div className="flex justify-end">
-        <Button onClick={handleSubmit} disabled={isSubmitting}>
+      <div className="flex justify-end sticky bottom-4 sm:bottom-6 z-10">
+        <Button 
+          onClick={handleSubmit} 
+          disabled={isSubmitting}
+          className="w-full sm:w-auto shadow-lg"
+          size="lg"
+        >
           {isSubmitting ? 'Submitting...' : 'Submit Grades'}
         </Button>
       </div>
