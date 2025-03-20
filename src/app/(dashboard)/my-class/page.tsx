@@ -97,7 +97,7 @@ export default async function MyClassPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">My Class</h1>
+        <h1 className="text-2xl font-bold text-white">My Class</h1>
         <p className="text-muted-foreground">
           Class {student.class.grade}-{student.class.section}
         </p>
@@ -137,11 +137,7 @@ export default async function MyClassPage() {
         </Card>
       </div>
 
-      <div className="flex justify-end">
-        <Button asChild>
-          <Link href="/student-exams">View Exams</Link>
-        </Button>
-      </div>
+     
 
       <Tabs defaultValue="subjects">
         <TabsList>
