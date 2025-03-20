@@ -48,6 +48,7 @@ model User {
   email         String?   @unique
   emailVerified DateTime?
   image         String?
+  profilePicture String?  // Cloudinary URL for profile picture
   password      String?
   role          String    @default("STUDENT")
   createdAt     DateTime  @default(now())
@@ -187,6 +188,7 @@ model Assignment {
   title       String
   description String?
   dueDate     DateTime
+  fileUrl     String?  // Cloudinary URL for assignment file
   teacherId   String
   subjectId   String
   teacher     Teacher  @relation(fields: [teacherId], references: [id])
@@ -204,6 +206,7 @@ model AssignmentSubmission {
   assignmentId String
   studentId    String
   content      String
+  fileUrl      String?    // Cloudinary URL for submission file
   status       String     @default("SUBMITTED") // SUBMITTED, GRADED
   grade        Float?
   feedback     String?
@@ -495,26 +498,23 @@ enum ResourceType {
 }
 
 model MaterialResource {
-  id          String   @id @default(cuid())
+  id          String      @id @default(cuid())
   title       String
   description String?
+  fileUrl     String      // Cloudinary URL for material file
   type        ResourceType
-  url         String
-  subjectId   String
-  subject     Subject  @relation(fields: [subjectId], references: [id])
-  classId     String
-  class       Class    @relation(fields: [classId], references: [id])
   teacherId   String
-  teacher     Teacher  @relation(fields: [teacherId], references: [id])
-  lessonId    String?
-  lesson      Lesson?  @relation(fields: [lessonId], references: [id])
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  classId     String
+  subjectId   String
+  teacher     Teacher     @relation(fields: [teacherId], references: [id])
+  class       Class       @relation(fields: [classId], references: [id])
+  subject     Subject     @relation(fields: [subjectId], references: [id])
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
-  @@index([subjectId])
-  @@index([classId])
   @@index([teacherId])
-  @@index([lessonId])
+  @@index([classId])
+  @@index([subjectId])
 }
 
 model Lesson {
