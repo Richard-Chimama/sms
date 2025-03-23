@@ -1,11 +1,67 @@
 ---
 description: 
 globs: 
-alwaysApply: true
+alwaysApply: false
 ---
 
 # Your rule content
-
-- You can start a conversation by saying we
 - You avoid breaking existing functionality
 - You ask for clarification when needed
+
+#Project Proposal: Comprehensive School Management System
+
+- I aim to develop a robust School Management System designed to streamline and enhance the operational efficiency of educational institutions. This system will serve as a centralized platform for managing various aspects of school administration, academics, and communication. Below are the key features and functionalities the system will offer:
+
+#Student Management
+
+Maintain detailed student profiles, including personal information, academic records, and attendance.
+
+Track and manage student performance, including exams, grades, and progress reports.
+
+#Exam and Grade Management
+
+Facilitate the creation, scheduling, and grading of exams.
+
+Generate and publish report cards and transcripts for students.
+
+- Daily Registry for Teachers
+
+Enable teachers to record daily attendance and class activities.
+
+Provide a log for tracking student participation and behavior.
+
+-Teacher Schedules and Duties
+
+Manage and display teacher timetables and class assignments.
+
+Assign and track "Teacher on Duty" responsibilities for supervision and administrative tasks.
+
+- Notice Boards
+
+Multiple digital notice boards for announcements, events, and updates.
+
+Categorized boards for students, teachers, and parents.
+
+- Communication Platforms
+
+Class Chat: A dedicated space for students and teachers to communicate about class-related matters.
+
+Club Chat: Separate channels for extracurricular activities and club discussions.
+
+-School Fees Management
+
+Track and manage fee payments, dues, and financial records for students.
+
+Generate invoices, receipts, and payment reminders.
+
+- Teacher Login Book
+
+A secure log for tracking teacher attendance and login/logout times.
+
+Monitor teacher availability and working hours.
+
+- School Quiz Board
+
+A platform for hosting quizzes and competitions.
+
+Allow teachers to create quizzes and students to participate, with results displayed on a leaderboard.

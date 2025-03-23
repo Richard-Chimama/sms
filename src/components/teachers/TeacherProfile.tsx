@@ -1,6 +1,6 @@
 'use client';
 
-import { Teacher, TeacherTimetable, TeacherDuty, Subject, Class } from '@prisma/client';
+import { Teacher, TeacherTimetable, TeacherDuty, Subject, Class, DayOfWeek, DutyType } from '@prisma/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -9,6 +9,14 @@ import { format } from 'date-fns';
 import { useSession } from 'next-auth/react';
 import AddTimetableEntry from './AddTimetableEntry';
 import AddDutyAssignment from './AddDutyAssignment';
+import { Session } from 'next-auth';
+
+interface CustomSession extends Session {
+  user: {
+    id: string;
+    role: string;
+  } & Session['user'];
+}
 
 type TeacherWithRelations = Teacher & {
   user: {
@@ -30,8 +38,18 @@ interface TeacherProfileProps {
   teacher: TeacherWithRelations;
 }
 
+interface AddTimetableEntryProps {
+  id: string;
+  subjects: (Subject & { class: Class })[];
+  classes: Class[];
+}
+
+interface AddDutyAssignmentProps {
+  id: string;
+}
+
 export default function TeacherProfile({ teacher }: TeacherProfileProps) {
-  const { data: session } = useSession();
+  const { data: session } = useSession() as { data: CustomSession | null };
   const isAdmin = session?.user?.role === 'ADMIN';
   const fullName = `${teacher.user.firstName} ${teacher.user.lastName}`;
   const initials = `${teacher.user.firstName?.[0] || ''}${teacher.user.lastName?.[0] || ''}`;
@@ -68,7 +86,7 @@ export default function TeacherProfile({ teacher }: TeacherProfileProps) {
               <CardTitle>Weekly Timetable</CardTitle>
               {isAdmin && (
                 <AddTimetableEntry
-                  teacherId={teacher.id}
+                  id={teacher.id}
                   subjects={teacher.subjects}
                   classes={teacher.classes}
                 />
@@ -109,7 +127,7 @@ export default function TeacherProfile({ teacher }: TeacherProfileProps) {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Assigned Duties</CardTitle>
-              {isAdmin && <AddDutyAssignment teacherId={teacher.id} />}
+              {isAdmin && <AddDutyAssignment id={teacher.id} />}
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -119,7 +137,7 @@ export default function TeacherProfile({ teacher }: TeacherProfileProps) {
                     className="flex items-center justify-between p-3 bg-gray-800 rounded-lg"
                   >
                     <div>
-                      <p className="font-medium text-gray-100">{duty.dayOfWeek}</p>
+                      <p className="font-medium text-gray-100">{format(duty.date, 'EEEE')}</p>
                       <p className="text-sm text-gray-300">
                         {format(new Date(duty.startTime), 'hh:mm a')} -{' '}
                         {format(new Date(duty.endTime), 'hh:mm a')}
@@ -127,8 +145,8 @@ export default function TeacherProfile({ teacher }: TeacherProfileProps) {
                     </div>
                     <div className="text-right">
                       <Badge variant="secondary">{duty.type}</Badge>
-                      {duty.location && (
-                        <p className="text-sm text-gray-300">{duty.location}</p>
+                      {duty.notes && (
+                        <p className="text-sm text-gray-300">{duty.notes}</p>
                       )}
                     </div>
                   </div>
