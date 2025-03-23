@@ -40,13 +40,13 @@ export function LoginForm() {
             router.push('/dashboard');
             break;
           case 'TEACHER':
-            router.push('/teacher/dashboard');
+            router.push('/dashboard');
             break;
           case 'STUDENT':
-            router.push('/student/dashboard');
+            router.push('/dashboard');
             break;
           case 'PARENT':
-            router.push('/parent/dashboard');
+            router.push('/dashboard');
             break;
           default:
             router.push('/dashboard');

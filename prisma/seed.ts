@@ -4,7 +4,9 @@ import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🧹 Cleaned up the database...');
+  console.log('🧹 Cleaning up the database...');
+  
+  // Delete records in the correct order to respect foreign key constraints
   await prisma.notification.deleteMany();
   await prisma.message.deleteMany();
   await prisma.chatParticipant.deleteMany();
@@ -18,17 +20,23 @@ async function main() {
   await prisma.examResult.deleteMany();
   await prisma.attendance.deleteMany();
   await prisma.feePayment.deleteMany();
+  await prisma.materialResource.deleteMany();
+  await prisma.lesson.deleteMany();
+  await prisma.teacherTimetable.deleteMany();
+  await prisma.teacherDuty.deleteMany();
+  await prisma.subject.deleteMany();
   await prisma.student.deleteMany();
+  await prisma.class.deleteMany();
   await prisma.teacher.deleteMany();
   await prisma.parent.deleteMany();
-  await prisma.subject.deleteMany();
-  await prisma.class.deleteMany();
   await prisma.noticeComment.deleteMany();
   await prisma.notice.deleteMany();
   await prisma.user.deleteMany();
 
+  console.log('🌱 Starting to seed the database...');
+
   // Create admin user
-  console.log('👑 Created admin user...');
+  console.log('👑 Creating admin user...');
   const adminPassword = await bcrypt.hash('admin123', 10);
   const admin = await prisma.user.create({
     data: {
@@ -40,7 +48,7 @@ async function main() {
   });
 
   // Create teachers
-  console.log('👨‍🏫 Created teachers...');
+  console.log('👨‍🏫 Creating teachers...');
   const teacher1Password = await bcrypt.hash('teacher123', 10);
   const teacher2Password = await bcrypt.hash('teacher123', 10);
   
@@ -79,7 +87,7 @@ async function main() {
   });
 
   // Create classes
-  console.log('🏫 Created classes...');
+  console.log('🏫 Creating classes...');
   const class1 = await prisma.class.create({
     data: {
       grade: '10',
@@ -97,7 +105,7 @@ async function main() {
   });
 
   // Create subjects
-  console.log('📚 Created subjects...');
+  console.log('📚 Creating subjects...');
   const subjects = await Promise.all([
     prisma.subject.create({
       data: {
@@ -134,7 +142,7 @@ async function main() {
   ]);
 
   // Create parents and students
-  console.log('👥 Created parents and students...');
+  console.log('👥 Creating parents and students...');
   const parents = await Promise.all(
     Array.from({ length: 10 }, async (_, i) => {
       const parentPassword = await bcrypt.hash('parent123', 10);
@@ -181,7 +189,7 @@ async function main() {
   );
 
   // Create attendance records
-  console.log('📝 Created attendance records...');
+  console.log('📝 Creating attendance records...');
   const today = new Date();
   await Promise.all(
     students.map((student: Student) =>
@@ -196,7 +204,7 @@ async function main() {
   );
 
   // Create assignments
-  console.log('📚 Created assignments...');
+  console.log('📚 Creating assignments...');
   const assignments = await Promise.all(
     subjects.map((subject) =>
       prisma.assignment.create({
@@ -212,7 +220,7 @@ async function main() {
   );
 
   // Create assignment submissions
-  console.log('📝 Created assignment submissions...');
+  console.log('📝 Creating assignment submissions...');
   await Promise.all(
     students.map((student: Student) =>
       assignments.map((assignment) =>
@@ -231,7 +239,7 @@ async function main() {
   );
 
   // Create exams
-  console.log('📝 Created exams...');
+  console.log('📝 Creating exams...');
   const exams = await Promise.all(
     subjects.map((subject) =>
       prisma.exam.create({
@@ -248,92 +256,24 @@ async function main() {
   );
 
   // Create questions for each exam
-  console.log('📝 Created questions...');
-  const questions = await Promise.all(
+  console.log('📝 Creating questions...');
+  await Promise.all(
     exams.map((exam) =>
-      Promise.all([
-        prisma.question.create({
-          data: {
-            examId: exam.id,
-            text: 'What is the capital of France?',
-            type: 'MULTIPLE_CHOICE',
-            options: ['London', 'Paris', 'Berlin', 'Madrid'],
-            answer: 'Paris',
-            marks: 1,
-          },
-        }),
-        prisma.question.create({
-          data: {
-            examId: exam.id,
-            text: 'Explain the concept of gravity.',
-            type: 'LONG_ANSWER',
-            answer: 'Gravity is a fundamental force...',
-            marks: 5,
-          },
-        }),
-      ])
-    ).flat()
-  );
-
-  // Create exam submissions
-  console.log('📝 Created exam submissions...');
-  const examSubmissions = await Promise.all(
-    students.map((student: Student) =>
-      exams.map((exam) =>
-        prisma.examSubmission.create({
-          data: {
-            examId: exam.id,
-            studentId: student.id,
-            status: Math.random() > 0.3 ? 'SUBMITTED' : 'IN_PROGRESS',
-            submittedAt: Math.random() > 0.3 ? new Date() : null,
-            totalMarks: Math.random() > 0.5 ? Math.floor(Math.random() * 100) : null,
-          },
-        })
-      )
-    ).flat()
-  );
-
-  // Create answers for exam submissions
-  console.log('📝 Created answers...');
-  await Promise.all(
-    examSubmissions.map((submission) =>
-      questions
-        .filter((questionGroup) => questionGroup[0].examId === submission.examId)
-        .flat()
-        .map((question) =>
-          prisma.answer.create({
-            data: {
-              questionId: question.id,
-              submissionId: submission.id,
-              answer: 'Sample answer',
-              marks: Math.random() > 0.5 ? Math.floor(Math.random() * question.marks) : null,
-              feedback: Math.random() > 0.5 ? 'Good answer!' : null,
-            },
-          })
-        )
-    ).flat()
-  );
-
-  // Create exam results
-  console.log('📝 Created exam results...');
-  await Promise.all(
-    students.map((student: Student) =>
-      subjects.map((subject) =>
-        prisma.examResult.create({
-          data: {
-            marks: Math.floor(Math.random() * 100),
-            totalMarks: 100,
-            date: new Date(),
-            studentId: student.id,
-            subjectId: subject.id,
-          },
-        })
-      )
-    ).flat()
+      prisma.question.create({
+        data: {
+          examId: exam.id,
+          text: 'Sample question',
+          type: 'MULTIPLE_CHOICE',
+          options: ['A', 'B', 'C', 'D'],
+          answer: 'A',
+          marks: 10,
+        },
+      })
+    )
   );
 
   // Create fee payments
-  console.log('💰 Created fee payments...');
+  console.log('💰 Creating fee payments...');
   await Promise.all(
     students.map((student: Student) =>
       prisma.feePayment.create({
@@ -349,225 +289,7 @@ async function main() {
     )
   );
 
-  // Create notices
-  console.log('📨 Created notices...');
-  const notices = await Promise.all([
-    prisma.notice.create({
-      data: {
-        title: 'School Holiday',
-        content: 'School will be closed for summer vacation from next week.',
-        category: 'GENERAL',
-        authorId: admin.id,
-        pinned: true,
-      },
-    }),
-    prisma.notice.create({
-      data: {
-        title: 'Exam Schedule',
-        content: 'Final exams will begin from next month.',
-        category: 'EXAM',
-        authorId: admin.id,
-        pinned: true,
-      },
-    }),
-    prisma.notice.create({
-      data: {
-        title: 'Parent-Teacher Meeting',
-        content: 'Parent-teacher meeting will be held next week.',
-        category: 'PARENT',
-        authorId: admin.id,
-        pinned: false,
-      },
-    }),
-  ]);
-
-  // Create notice comments
-  console.log('💬 Created notice comments...');
-  await Promise.all(
-    notices.map((notice) =>
-      Promise.all([
-        prisma.noticeComment.create({
-          data: {
-            content: 'Thank you for the information.',
-            noticeId: notice.id,
-            authorId: parents[0].id,
-          },
-        }),
-        prisma.noticeComment.create({
-          data: {
-            content: 'When exactly will the meeting be held?',
-            noticeId: notice.id,
-            authorId: parents[1].id,
-          },
-        }),
-      ])
-    ).flat()
-  );
-
-  // Create teacher timetables
-  console.log('📅 Created teacher timetables...');
-  await Promise.all([
-    prisma.teacherTimetable.create({
-      data: {
-        teacherId: teacher1User.teacher!.id,
-        classId: class1.id,
-        subjectId: subjects[0].id,
-        dayOfWeek: 'MONDAY',
-        startTime: new Date('1970-01-01T09:00:00.000Z'),
-        endTime: new Date('1970-01-01T10:00:00.000Z'),
-      },
-    }),
-    prisma.teacherTimetable.create({
-      data: {
-        teacherId: teacher2User.teacher!.id,
-        classId: class2.id,
-        subjectId: subjects[2].id,
-        dayOfWeek: 'MONDAY',
-        startTime: new Date('1970-01-01T10:00:00.000Z'),
-        endTime: new Date('1970-01-01T11:00:00.000Z'),
-      },
-    }),
-  ]);
-
-  // Create teacher duties
-  console.log('📅 Created teacher duties...');
-  await Promise.all([
-    prisma.teacherDuty.create({
-      data: {
-        teacherId: teacher1User.teacher!.id,
-        type: 'MORNING_ASSEMBLY',
-        date: new Date(today.getTime() + 24 * 60 * 60 * 1000), // Tomorrow
-        startTime: new Date('1970-01-01T08:00:00.000Z'),
-        endTime: new Date('1970-01-01T09:00:00.000Z'),
-        notes: 'Lead the morning assembly',
-      },
-    }),
-    prisma.teacherDuty.create({
-      data: {
-        teacherId: teacher2User.teacher!.id,
-        type: 'LUNCH_BREAK',
-        date: new Date(today.getTime() + 24 * 60 * 60 * 1000), // Tomorrow
-        startTime: new Date('1970-01-01T12:00:00.000Z'),
-        endTime: new Date('1970-01-01T13:00:00.000Z'),
-        notes: 'Supervise lunch break',
-      },
-    }),
-  ]);
-
-  // Create chats
-  console.log('💬 Created chats...');
-  const chats = await Promise.all([
-    prisma.chat.create({
-      data: {
-        name: 'Class 10A Group',
-        type: 'CLASS',
-      },
-    }),
-    prisma.chat.create({
-      data: {
-        name: 'Teachers Group',
-        type: 'GROUP',
-      },
-    }),
-  ]);
-
-  // Create chat participants
-  console.log('👥 Created chat participants...');
-  await Promise.all([
-    // Add all students from class1 to the class chat
-    ...students
-      .filter((student: Student) => student.classId === class1.id)
-      .map((student: Student) =>
-        prisma.chatParticipant.create({
-          data: {
-            chatId: chats[0].id,
-            userId: student.userId,
-            role: 'MEMBER',
-          },
-        })
-      ),
-    // Add teachers to the teachers group
-    prisma.chatParticipant.create({
-      data: {
-        chatId: chats[1].id,
-        userId: teacher1User.id,
-        role: 'MEMBER',
-      },
-    }),
-    prisma.chatParticipant.create({
-      data: {
-        chatId: chats[1].id,
-        userId: teacher2User.id,
-        role: 'MEMBER',
-      },
-    }),
-  ]);
-
-  // Create messages
-  console.log('💬 Created messages...');
-  await Promise.all([
-    prisma.message.create({
-      data: {
-        content: 'Hello everyone!',
-        chatId: chats[0].id,
-        userId: teacher1User.id,
-      },
-    }),
-    prisma.message.create({
-      data: {
-        content: 'Hi teacher!',
-        chatId: chats[0].id,
-        userId: students[0].userId,
-      },
-    }),
-    prisma.message.create({
-      data: {
-        content: 'Welcome to the teachers group!',
-        chatId: chats[1].id,
-        userId: teacher1User.id,
-      },
-    }),
-  ]);
-
-  // Create notifications
-  console.log('🔔 Created notifications...');
-  await Promise.all([
-    prisma.notification.create({
-      data: {
-        type: 'EXAM',
-        title: 'New Exam Scheduled',
-        content: 'A new exam has been scheduled for Mathematics.',
-        isRead: false,
-        userId: students[0].userId,
-        senderId: teacher1User.id,
-        link: '/exams',
-      },
-    }),
-    prisma.notification.create({
-      data: {
-        type: 'ASSIGNMENT',
-        title: 'New Assignment',
-        content: 'A new assignment has been posted for Science.',
-        isRead: false,
-        userId: students[0].userId,
-        senderId: teacher1User.id,
-        link: '/assignments',
-      },
-    }),
-    prisma.notification.create({
-      data: {
-        type: 'NOTICE',
-        title: 'New Notice',
-        content: 'A new notice has been posted.',
-        isRead: false,
-        userId: students[0].userId,
-        senderId: admin.id,
-        link: '/notices',
-      },
-    }),
-  ]);
-
-  console.log('✅ Seeding completed successfully!');
+  console.log('✅ Database seeded successfully!');
 }
 
 main()

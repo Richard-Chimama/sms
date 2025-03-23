@@ -75,6 +75,7 @@ export function ExamDetails({ exam }: ExamDetailsProps) {
           <Button
             variant="outline"
             onClick={() => router.push(`/exams/${exam.id}/submissions`)}
+            className="text-black"
           >
             <Users className="mr-2 h-4 w-4" />
             View Submissions

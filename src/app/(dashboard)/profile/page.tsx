@@ -1,6 +1,6 @@
 import { getServerSession } from 'next-auth/next';
 import { redirect } from 'next/navigation';
-import { authOptions } from '@/lib/auth.config';
+import { authOptions } from '@/lib/auth';
 import { ProfileForm } from '@/components/profile/profile-form';
 
 export default async function ProfilePage() {

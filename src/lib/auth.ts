@@ -1,7 +1,8 @@
-import { NextAuthOptions } from 'next-auth';
+import type { Session } from 'next-auth';
+import type { AuthOptions } from '@auth/core';
 import { JWT } from 'next-auth/jwt';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import prisma from '@/lib/db/prisma';
+import { prisma } from '@/lib/prisma';
 import { compare } from 'bcryptjs';
 import { User } from '@prisma/client';
 
@@ -12,12 +13,12 @@ declare module 'next-auth' {
   interface Session {
     user: {
       id: string;
-      email?: string | null;
       name?: string | null;
-      role: Role;
+      email?: string | null;
+      image?: string | null;
+      role: string;
       firstName?: string | null;
       lastName?: string | null;
-      image?: string | null;
     }
   }
 }
@@ -25,15 +26,15 @@ declare module 'next-auth' {
 declare module 'next-auth/jwt' {
   interface JWT {
     id: string;
-    role: Role;
+    role: string;
     firstName?: string | null;
     lastName?: string | null;
   }
 }
 
-export const authOptions: NextAuthOptions = {
+export const authOptions: AuthOptions = {
   session: {
-    strategy: 'jwt',
+    strategy: 'jwt' as const,
   },
   callbacks: {
     async jwt({ token, user }: { token: JWT; user: any }) {
@@ -87,7 +88,7 @@ export const authOptions: NextAuthOptions = {
           id: user.id,
           email: user.email,
           name: user.name,
-          role: user.role as Role,
+          role: user.role,
           firstName: user.firstName,
           lastName: user.lastName,
         };
