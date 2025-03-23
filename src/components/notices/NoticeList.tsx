@@ -226,7 +226,7 @@ export default function NoticeList({ notices: initialNotices, userRole, category
                       placeholder="Write a comment..."
                       value={commentInputs[notice.id] || ''}
                       onChange={(e) => handleCommentChange(notice.id, e.target.value)}
-                      className="min-h-[60px]"
+                      className="min-h-[60px] bg-gray-800 border-gray-700 text-white"
                     />
                     <Button
                       onClick={() => handleSubmitComment(notice.id)}
@@ -236,16 +236,16 @@ export default function NoticeList({ notices: initialNotices, userRole, category
                     </Button>
                   </div>
                 )}
-                <div className="space-y-2">
+                <div className="space-y-2 ">
                   {notice.comments?.map((comment) => (
-                    <div key={comment.id} className="bg-muted p-3 rounded-lg">
+                    <div key={comment.id} className="p-3 bg-gray-800 border border-white rounded">
                       <div className="flex justify-between items-start">
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-muted-foreground text-white">
                           {comment.author.firstName} {comment.author.lastName} ·{' '}
                           {format(new Date(comment.createdAt), 'PPP')}
                         </p>
                       </div>
-                      <p className="mt-1 text-sm">{comment.content}</p>
+                      <p className="mt-1 text-sm text-white">{comment.content}</p>
                     </div>
                   ))}
                 </div>

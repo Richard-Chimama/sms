@@ -31,13 +31,13 @@ import { toast } from 'sonner';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
+import { DutyType } from '@prisma/client';
 
 const formSchema = z.object({
-  type: z.enum(['MORNING_ASSEMBLY', 'BREAK_TIME', 'LIBRARY', 'SPORTS', 'LAB', 'EXAM_SUPERVISION', 'OTHER']),
-  dayOfWeek: z.enum(['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY']),
+  type: z.nativeEnum(DutyType),
+  date: z.string().min(1, 'Date is required'),
   startTime: z.string().min(1, 'Start time is required'),
   endTime: z.string().min(1, 'End time is required'),
-  location: z.string().optional(),
   notes: z.string().optional(),
 });
 
@@ -53,11 +53,10 @@ export default function AddDutyAssignment({ id }: AddDutyAssignmentProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      type: 'MORNING_ASSEMBLY',
-      dayOfWeek: 'MONDAY',
+      type: DutyType.MORNING_ASSEMBLY,
+      date: '',
       startTime: '',
       endTime: '',
-      location: '',
       notes: '',
     },
   });
@@ -90,25 +89,7 @@ export default function AddDutyAssignment({ id }: AddDutyAssignmentProps) {
     }
   }
 
-  const dutyTypes = [
-    'MORNING_ASSEMBLY',
-    'BREAK_TIME',
-    'LIBRARY',
-    'SPORTS',
-    'LAB',
-    'EXAM_SUPERVISION',
-    'OTHER',
-  ];
-
-  const daysOfWeek = [
-    'MONDAY',
-    'TUESDAY',
-    'WEDNESDAY',
-    'THURSDAY',
-    'FRIDAY',
-    'SATURDAY',
-    'SUNDAY',
-  ];
+  const dutyTypes = Object.values(DutyType);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -148,24 +129,17 @@ export default function AddDutyAssignment({ id }: AddDutyAssignmentProps) {
 
             <FormField
               control={form.control}
-              name="dayOfWeek"
+              name="date"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Day of Week</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a day" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {daysOfWeek.map((day) => (
-                        <SelectItem key={day} value={day}>
-                          {day}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FormLabel>Date</FormLabel>
+                  <FormControl>
+                    <input
+                      type="date"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      {...field}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -201,20 +175,6 @@ export default function AddDutyAssignment({ id }: AddDutyAssignmentProps) {
                       className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                       {...field}
                     />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="location"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Location</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter location (optional)" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
