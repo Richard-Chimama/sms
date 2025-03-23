@@ -14,6 +14,7 @@ import {
   Users,
   Bell,
   GraduationCap,
+  FileText,
 } from 'lucide-react';
 
 interface NavItem {
@@ -84,6 +85,12 @@ const navItems: NavItem[] = [
     roles: ['TEACHER'],
   },
   {
+    href: '/teacher/materials',
+    label: 'Materials',
+    icon: FileText,
+    roles: ['TEACHER'],
+  },
+  {
     href: '/my-class',
     label: 'My Class',
     icon: Calendar,
@@ -93,6 +100,12 @@ const navItems: NavItem[] = [
     href: '/student-exams',
     label: 'Exams',
     icon: BookOpen,
+    roles: ['STUDENT'],
+  },
+  {
+    href: '/materials',
+    label: 'Class Materials',
+    icon: FileText,
     roles: ['STUDENT'],
   },
   {

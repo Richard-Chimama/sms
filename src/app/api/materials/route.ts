@@ -3,48 +3,54 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/db/prisma';
 import { z } from 'zod';
-import { writeFile } from 'fs/promises';
-import { join } from 'path';
-import { v4 as uuidv4 } from 'uuid';
-import { pusherServer } from '@/lib/pusher';
+import { ResourceType } from '@prisma/client';
+import { Session } from 'next-auth';
+
+interface CustomSession extends Session {
+  user: {
+    id: string;
+    role: 'ADMIN' | 'TEACHER' | 'STUDENT';
+  };
+}
 
 const createMaterialSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   description: z.string().optional(),
-  type: z.enum(['PDF', 'VIDEO', 'LINK', 'OTHER']),
-  url: z.string().min(1, 'URL or file is required'),
+  type: z.nativeEnum(ResourceType),
+  fileUrl: z.string().min(1, 'File URL is required'),
   subjectId: z.string().min(1, 'Subject is required'),
   classId: z.string().min(1, 'Class is required'),
 });
 
 export async function POST(req: Request) {
   try {
-    const session = await getServerSession(authOptions) as Session & { user: { id: string } };
+    const session = await getServerSession(authOptions) as CustomSession;
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const data = await req.json();
-    const { title, description, type, url, subjectId, classId } = data;
+    const validatedData = createMaterialSchema.parse(data);
 
-    // Validate required fields
-    if (!title || !type || !url || !subjectId || !classId) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      );
+    // Get the teacher's ID
+    const teacher = await prisma.teacher.findFirst({
+      where: { userId: session.user.id },
+    });
+
+    if (!teacher) {
+      return NextResponse.json({ error: 'Teacher not found' }, { status: 404 });
     }
 
     // Create the material
     const material = await prisma.materialResource.create({
       data: {
-        title,
-        description,
-        type,
-        url,
-        subjectId,
-        classId,
-        teacherId: session.user.teacher.id,
+        title: validatedData.title,
+        description: validatedData.description,
+        type: validatedData.type,
+        fileUrl: validatedData.fileUrl,
+        subjectId: validatedData.subjectId,
+        classId: validatedData.classId,
+        teacherId: teacher.id,
       },
       include: {
         subject: true,
@@ -62,15 +68,15 @@ export async function POST(req: Request) {
       },
     });
 
-    // Emit Pusher event for real-time updates
-    await pusherServer.trigger('materials', 'new-material', {
-      material,
-      classId,
-    });
-
     return NextResponse.json(material);
   } catch (error) {
     console.error('Error creating material:', error);
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: error.errors[0].message },
+        { status: 400 }
+      );
+    }
     return NextResponse.json(
       { error: 'Failed to create material' },
       { status: 500 }
@@ -80,7 +86,7 @@ export async function POST(req: Request) {
 
 export async function GET(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(authOptions) as CustomSession;
 
     if (!session?.user?.id) {
       return new NextResponse('Unauthorized', { status: 401 });
@@ -89,6 +95,7 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const classId = searchParams.get('classId');
     const subjectId = searchParams.get('subjectId');
+    const teacherId = searchParams.get('teacherId');
 
     // Get user role and related info
     const user = await prisma.user.findUnique({

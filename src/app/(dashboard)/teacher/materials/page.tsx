@@ -29,7 +29,7 @@ export default async function TeacherMaterialsPage() {
   return (
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold tracking-tight">Teaching Materials</h1>
+        <h1 className="text-2xl font-bold text-white tracking-tight">Teaching Materials</h1>
         <AddMaterialButton classes={teacher.classes} subjects={teacher.subjects} />
       </div>
 

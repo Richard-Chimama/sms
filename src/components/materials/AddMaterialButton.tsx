@@ -31,13 +31,13 @@ import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
-import { Class, Subject } from '@prisma/client';
+import { Class, Subject, ResourceType } from '@prisma/client';
 
 const formSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   description: z.string().optional(),
-  type: z.enum(['PDF', 'VIDEO', 'LINK', 'OTHER']),
-  url: z.string().min(1, 'URL or file is required'),
+  type: z.nativeEnum(ResourceType),
+  fileUrl: z.string().min(1, 'File URL is required'),
   subjectId: z.string().min(1, 'Subject is required'),
   classId: z.string().min(1, 'Class is required'),
 });
@@ -57,8 +57,8 @@ export default function AddMaterialButton({ classes, subjects }: AddMaterialButt
     defaultValues: {
       title: '',
       description: '',
-      type: 'LINK',
-      url: '',
+      type: ResourceType.PDF,
+      fileUrl: '',
       subjectId: '',
       classId: '',
     },
@@ -68,45 +68,17 @@ export default function AddMaterialButton({ classes, subjects }: AddMaterialButt
     try {
       setIsSubmitting(true);
 
-      if (values.type === 'LINK') {
-        // Handle link submission
-        const response = await fetch('/api/materials', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(values),
-        });
+      const response = await fetch('/api/materials', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(values),
+      });
 
-        if (!response.ok) {
-          throw new Error('Failed to add material');
-        }
-      } else {
-        // Handle file upload
-        const fileInput = document.querySelector<HTMLInputElement>('#file');
-        const file = fileInput?.files?.[0];
-
-        if (!file) {
-          toast.error('Please select a file');
-          return;
-        }
-
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('title', values.title);
-        formData.append('description', values.description || '');
-        formData.append('type', values.type);
-        formData.append('subjectId', values.subjectId);
-        formData.append('classId', values.classId);
-
-        const response = await fetch('/api/materials', {
-          method: 'POST',
-          body: formData,
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to upload file');
-        }
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to add material');
       }
 
       toast.success('Material added successfully');
@@ -114,8 +86,8 @@ export default function AddMaterialButton({ classes, subjects }: AddMaterialButt
       form.reset();
       router.refresh();
     } catch (error) {
-      toast.error('Failed to add material');
-      console.error(error);
+      console.error('Error adding material:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to add material');
     } finally {
       setIsSubmitting(false);
     }
@@ -182,10 +154,10 @@ export default function AddMaterialButton({ classes, subjects }: AddMaterialButt
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="PDF">PDF</SelectItem>
-                      <SelectItem value="VIDEO">Video</SelectItem>
-                      <SelectItem value="LINK">Link</SelectItem>
-                      <SelectItem value="OTHER">Other</SelectItem>
+                      <SelectItem value={ResourceType.PDF}>PDF</SelectItem>
+                      <SelectItem value={ResourceType.VIDEO}>Video</SelectItem>
+                      <SelectItem value={ResourceType.LINK}>Link</SelectItem>
+                      <SelectItem value={ResourceType.OTHER}>Other</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -193,45 +165,19 @@ export default function AddMaterialButton({ classes, subjects }: AddMaterialButt
               )}
             />
 
-            {type === 'LINK' ? (
-              <FormField
-                control={form.control}
-                name="url"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>URL</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter URL" type="url" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            ) : (
-              <FormItem>
-                <FormLabel>File</FormLabel>
-                <FormControl>
-                  <Input
-                    id="file"
-                    type="file"
-                    accept={
-                      type === 'PDF'
-                        ? '.pdf'
-                        : type === 'VIDEO'
-                        ? 'video/*'
-                        : undefined
-                    }
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        form.setValue('url', file.name);
-                      }
-                    }}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            <FormField
+              control={form.control}
+              name="fileUrl"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>File URL</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter file URL" type="url" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}
