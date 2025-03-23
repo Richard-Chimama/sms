@@ -92,7 +92,7 @@ export default function AddTimetableEntry({ id, subjects, classes }: AddTimetabl
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline">Add Timetable Entry</Button>
+        <Button variant="outline" className='text-black'>Add Timetable Entry</Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

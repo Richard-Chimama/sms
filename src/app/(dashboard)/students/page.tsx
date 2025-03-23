@@ -51,7 +51,7 @@ export default async function StudentsPage() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">Students</h1>
+        <h1 className="text-2xl font-bold text-white">Students</h1>
         <CreateStudentButton classes={classes} />
       </div>
 

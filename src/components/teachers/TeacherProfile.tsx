@@ -198,7 +198,7 @@ export default function TeacherProfile({ teacher }: TeacherProfileProps) {
                           <p className="font-medium text-gray-100">{subject.name}</p>
                           <p className="text-sm text-gray-300">Code: {subject.code}</p>
                         </div>
-                        <Badge variant="outline">
+                        <Badge variant="outline" className='text-white'>
                           Class {subject.class.grade}-{subject.class.section}
                         </Badge>
                       </div>

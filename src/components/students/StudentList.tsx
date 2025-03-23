@@ -43,13 +43,13 @@ export default function StudentList({ students }: StudentListProps) {
           placeholder="Search students..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-800 text-white border-gray-700"
         />
       </div>
 
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+        <table className="min-w-full divide-y divide-gray-700">
+          <thead className="bg-gray-800">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Roll Number</th>
@@ -60,22 +60,22 @@ export default function StudentList({ students }: StudentListProps) {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Parent</th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-gray-800 divide-y divide-gray-700">
             {filteredStudents.map((student) => (
-              <tr key={student.id}>
-                <td className="px-6 py-4 whitespace-nowrap">
+              <tr key={student.id} className="hover:bg-gray-800">
+                <td className="px-6 py-4 whitespace-nowrap text-gray-100">
                   {student.user.firstName} {student.user.lastName}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">{student.rollNumber}</td>
-                <td className="px-6 py-4 whitespace-nowrap">{student.age || '-'}</td>
-                <td className="px-6 py-4 whitespace-nowrap">{student.gender || '-'}</td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-6 py-4 whitespace-nowrap text-gray-100">{student.rollNumber}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-gray-100">{student.dateOfBirth ? new Date().getFullYear() - new Date(student.dateOfBirth).getFullYear() : '-'}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-gray-100">{student.gender || '-'}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-gray-100">
                   Grade {student.class.grade}-{student.class.section}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-6 py-4 whitespace-nowrap text-gray-100">
                   {student.class.teacher.user.firstName} {student.class.teacher.user.lastName}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-6 py-4 whitespace-nowrap text-gray-100">
                   {student.parent ? (
                     `${student.parent.user.firstName} ${student.parent.user.lastName}`
                   ) : (

@@ -113,7 +113,7 @@ export default function AddDutyAssignment({ id }: AddDutyAssignmentProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline">Add Duty Assignment</Button>
+        <Button variant="outline" className='text-black'>Add Duty Assignment</Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

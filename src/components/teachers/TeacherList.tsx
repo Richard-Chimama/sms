@@ -52,7 +52,7 @@ export default function TeacherList({ teachers }: TeacherListProps) {
           placeholder="Search teachers..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-800 text-white border-gray-700"
         />
       </div>
 
@@ -84,7 +84,7 @@ export default function TeacherList({ teachers }: TeacherListProps) {
                         {teacher.user.email ?? 'No email provided'}
                       </p>
                       <div className="mt-1">
-                        <Badge variant="outline" className="text-xs">
+                        <Badge variant="outline" className="text-xs text-white">
                           ID: {teacher.employeeId}
                         </Badge>
                       </div>
