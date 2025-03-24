@@ -1,13 +1,15 @@
-import { v2 as cloudinary, UploadApiResponse, UploadApiOptions } from 'cloudinary';
+import { v2 as cloudinary, UploadApiResponse } from 'cloudinary';
 
-if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+if (!process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME ||
+    !process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY ||
+    !process.env.CLOUDINARY_API_SECRET) {
   throw new Error('Missing Cloudinary environment variables');
 }
 
 // Configure Cloudinary - server-side only
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
+  cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
@@ -16,7 +18,7 @@ export async function deleteFromCloudinary(publicId: string): Promise<boolean> {
     const result = await cloudinary.uploader.destroy(publicId);
     return result.result === 'ok';
   } catch (error) {
-    console.error('Cloudinary delete error:', error);
+    console.error('Error deleting from Cloudinary:', error);
     return false;
   }
 }
