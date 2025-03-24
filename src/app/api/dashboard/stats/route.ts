@@ -4,6 +4,10 @@ import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/db/prisma';
 import { Session } from 'next-auth';
 
+// Specify that this is a dynamic route
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 interface CustomSession extends Session {
   user: {
     id: string;
