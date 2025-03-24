@@ -52,7 +52,15 @@ export default function TeacherDashboardView({ teacher }: TeacherDashboardViewPr
   );
 
   const todaysDuties = teacher.duties.filter(
-    (duty) => duty.dayOfWeek === today
+    (duty) => {
+      const dutyDate = new Date(duty.date);
+      const today = new Date();
+      return (
+        dutyDate.getFullYear() === today.getFullYear() &&
+        dutyDate.getMonth() === today.getMonth() &&
+        dutyDate.getDate() === today.getDate()
+      );
+    }
   );
 
   return (
@@ -180,8 +188,8 @@ export default function TeacherDashboardView({ teacher }: TeacherDashboardViewPr
                 >
                   <div>
                     <Badge variant="secondary">{duty.type.replace(/_/g, ' ')}</Badge>
-                    {duty.location && (
-                      <p className="text-sm text-gray-300 mt-1">{duty.location}</p>
+                    {duty.notes && (
+                      <p className="text-sm text-gray-300 mt-1">{duty.notes}</p>
                     )}
                   </div>
                   <div className="text-right">

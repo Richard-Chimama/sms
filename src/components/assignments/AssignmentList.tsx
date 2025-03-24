@@ -77,10 +77,10 @@ export default function AssignmentList({ assignments }: AssignmentListProps) {
           <Card key={assignment.id} className="flex flex-col">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle className="text-lg line-clamp-1" title={assignment.title}>
+                <CardTitle className="text-lg font-semibold">
                   {assignment.title}
                 </CardTitle>
-                <Badge variant="outline text-white">
+                <Badge variant="outline" className="text-white">
                   {assignment.subject.name} ({assignment.subject.class.grade}-
                   {assignment.subject.class.section})
                 </Badge>

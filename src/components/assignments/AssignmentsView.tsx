@@ -10,6 +10,7 @@ import AddAssignment from "./AddAssignment";
 
 type AssignmentWithDetails = Assignment & {
   subject: {
+    id: string;
     name: string;
     class: {
       grade: string;
@@ -36,6 +37,7 @@ export default function AssignmentsView({
   teacherId,
 }: AssignmentsViewProps) {
   const [isAddingAssignment, setIsAddingAssignment] = useState(false);
+  const [selectedSubjectId, setSelectedSubjectId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("all");
 
   const pendingAssignments = assignments.filter(
@@ -52,11 +54,23 @@ export default function AssignmentsView({
       )
   );
 
+  const handleAddAssignment = () => {
+    // Get the first subject ID from assignments if available
+    const firstSubjectId = assignments[0]?.subject?.id;
+    if (firstSubjectId) {
+      setSelectedSubjectId(firstSubjectId);
+      setIsAddingAssignment(true);
+    } else {
+      // Handle the case where no subject is available
+      console.error("No subject available for creating an assignment");
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl text-white font-bold">Assignments</h1>
-        <Button onClick={() => setIsAddingAssignment(true)}>
+        <Button onClick={handleAddAssignment}>
           <Plus className="mr-2 h-4 w-4" />
           Add Assignment
         </Button>
@@ -82,12 +96,17 @@ export default function AssignmentsView({
         </TabsContent>
       </Tabs>
 
-      {isAddingAssignment && (
+      {isAddingAssignment && selectedSubjectId && (
         <AddAssignment
           teacherId={teacherId}
-          onClose={() => setIsAddingAssignment(false)}
+          subjectId={selectedSubjectId}
+          onClose={() => {
+            setIsAddingAssignment(false);
+            setSelectedSubjectId(null);
+          }}
           onSuccess={() => {
             setIsAddingAssignment(false);
+            setSelectedSubjectId(null);
             // Refresh assignments
           }}
         />

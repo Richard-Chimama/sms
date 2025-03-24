@@ -1,4 +1,5 @@
-import { getServerSession } from 'next-auth';
+import { getServerSession } from 'next-auth/next';
+import type { Session } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import prisma from '@/lib/db/prisma';
@@ -7,7 +8,7 @@ import CreateStudentButton from '@/components/students/CreateStudentButton';
 import type { StudentWithRelations, ClassWithTeacher } from '@/types';
 
 export default async function StudentsPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession(authOptions) as Session;
 
   if (!session || session.user.role !== 'ADMIN') {
     redirect('/dashboard');

@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
-import { getServerSession } from 'next-auth';
+import { getServerSession } from 'next-auth/next';
+import type { Session } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/db/prisma';
 import ClassDetails from '@/components/admin/ClassDetails';
@@ -9,7 +10,7 @@ export default async function ClassPage({
 }: {
   params: { id: string };
 }) {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession(authOptions) as Session;
 
   if (!session?.user || session.user.role !== 'ADMIN') {
     return notFound();

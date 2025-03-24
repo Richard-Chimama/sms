@@ -1,11 +1,13 @@
 import { redirect } from 'next/navigation';
-import { getServerSession } from 'next-auth';
+import { getServerSession } from 'next-auth/next';
+import type { Session } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/db/prisma';
 import TeacherDashboardView from '@/components/teachers/TeacherDashboardView';
+import { Prisma } from '@prisma/client';
 
-export default async function TeacherDashboard() {
-  const session = await getServerSession(authOptions);
+export default async function TeacherDashboardPage() {
+  const session = await getServerSession(authOptions) as Session;
 
   if (!session?.user) {
     redirect('/auth/signin');
@@ -41,13 +43,11 @@ export default async function TeacherDashboard() {
           class: true,
         },
         orderBy: [
-          { dayOfWeek: 'asc' },
           { startTime: 'asc' },
         ],
       },
       duties: {
         orderBy: [
-          { dayOfWeek: 'asc' },
           { startTime: 'asc' },
         ],
       },

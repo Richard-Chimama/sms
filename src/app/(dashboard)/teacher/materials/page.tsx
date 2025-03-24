@@ -1,13 +1,14 @@
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
+import { getServerSession } from 'next-auth/next';
+import type { Session } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/db/prisma';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import AddMaterialButton from '@/components/materials/AddMaterialButton';
 import MaterialsList from '@/components/materials/MaterialsList';
 
 export default async function TeacherMaterialsPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession(authOptions) as Session;
 
   if (!session?.user) {
     redirect('/auth/signin');

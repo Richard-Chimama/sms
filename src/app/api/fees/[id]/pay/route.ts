@@ -1,41 +1,39 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
+import type { Session } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/db/prisma';
 
 export async function POST(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(authOptions) as Session;
 
     if (!session?.user || session.user.role !== 'ADMIN') {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    // Find the fee payment
-    const feePayment = await prisma.feePayment.findUnique({
-      where: { id: params.id },
-    });
+    const { amount, paymentDate } = await request.json();
 
-    if (!feePayment) {
-      return new NextResponse('Fee payment not found', { status: 404 });
+    if (!amount || !paymentDate) {
+      return new NextResponse('Missing required fields', { status: 400 });
     }
 
-    // Update the fee payment status to PAID
-    const updatedFeePayment = await prisma.feePayment.update({
+    const payment = await prisma.feePayment.update({
       where: { id: params.id },
       data: {
+        amount: parseFloat(amount),
+        paidDate: new Date(paymentDate),
         status: 'PAID',
-        paidDate: new Date(),
       },
     });
 
-    return NextResponse.json(updatedFeePayment);
+    return NextResponse.json(payment);
   } catch (error) {
-    console.error('[FEES_PAY_POST]', error);
-    return new NextResponse('Internal Error', { status: 500 });
+    console.error('Error processing payment:', error);
+    return new NextResponse('Internal Server Error', { status: 500 });
   }
 }
 

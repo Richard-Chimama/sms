@@ -1,4 +1,4 @@
-import type { Student, User, Class, Teacher, Parent, Attendance, ExamResult, Assignment, Subject, FeePayment } from '@prisma/client';
+import type { Student, User, Class, Teacher, Parent, Attendance, ExamResult, Assignment, Subject, FeePayment, AssignmentSubmission } from '@prisma/client';
 
 export type StudentWithRelations = Student & {
   user: User;
@@ -16,6 +16,9 @@ export type StudentWithRelations = Student & {
   })[];
   assignments: (Assignment & {
     subject: Subject;
+    submissions: (AssignmentSubmission & {
+      student: Student;
+    })[];
   })[];
   feePayments: FeePayment[];
 };

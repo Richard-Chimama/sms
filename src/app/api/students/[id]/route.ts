@@ -1,83 +1,71 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getServerSession } from 'next-auth/next';
+import type { Session } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
 export async function PUT(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const data = await request.json();
-    const studentId = params.id;
+    const session = await getServerSession(authOptions) as Session;
 
-    // Update student and related user information
-    const updatedStudent = await prisma.student.update({
-      where: { id: studentId },
+    if (!session?.user || session.user.role !== 'ADMIN') {
+      return new NextResponse('Unauthorized', { status: 401 });
+    }
+
+    const body = await request.json();
+
+    const student = await prisma.student.update({
+      where: { id: params.id },
       data: {
-        rollNumber: data.rollNumber,
+        classId: body.classId,
+        rollNumber: body.rollNumber,
         user: {
           update: {
-            firstName: data.firstName,
-            lastName: data.lastName,
-            email: data.email,
-          },
-        },
-        parent: {
-          update: {
-            user: {
-              update: {
-                firstName: data.parentFirstName,
-                lastName: data.parentLastName,
-                email: data.parentEmail,
-              },
-            },
+            firstName: body.firstName,
+            lastName: body.lastName,
+            email: body.email,
           },
         },
       },
       include: {
         user: true,
-        parent: {
-          include: {
-            user: true,
-          },
-        },
+        class: true,
       },
     });
 
-    return NextResponse.json(updatedStudent);
+    return NextResponse.json(student);
   } catch (error) {
     console.error('Error updating student:', error);
-    return NextResponse.json(
-      { error: 'Failed to update student' },
-      { status: 500 }
-    );
+    return new NextResponse('Internal Server Error', { status: 500 });
   }
 }
 
 export async function DELETE(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getServerSession(authOptions) as Session;
+
+    if (!session?.user || session.user.role !== 'ADMIN') {
+      return new NextResponse('Unauthorized', { status: 401 });
+    }
+
     const studentId = params.id;
 
-    // Get the student's user ID and parent's user ID before deletion
+    // Get the student with parent information
     const student = await prisma.student.findUnique({
       where: { id: studentId },
       include: {
-        user: true,
-        parent: {
-          include: {
-            user: true,
-          },
-        },
+        parent: true,
       },
     });
 
     if (!student) {
-      return NextResponse.json(
-        { error: 'Student not found' },
-        { status: 404 }
-      );
+      return new NextResponse('Student not found', { status: 404 });
     }
 
     // Delete the student record first
@@ -85,35 +73,43 @@ export async function DELETE(
       where: { id: studentId },
     });
 
-    // Delete the parent record
-    await prisma.parent.delete({
-      where: { id: student.parentId },
-    });
+    // Delete the parent record if it exists
+    if (student.parentId) {
+      await prisma.parent.delete({
+        where: { id: student.parentId },
+      });
 
-    // Delete the associated user records
+      // Delete the parent user record if it exists
+      if (student.parent?.userId) {
+        await prisma.user.delete({
+          where: { id: student.parent.userId },
+        });
+      }
+    }
+
+    // Delete the student user record
     await prisma.user.delete({
       where: { id: student.userId },
     });
 
-    await prisma.user.delete({
-      where: { id: student.parent.userId },
-    });
-
-    return NextResponse.json({ message: 'Student deleted successfully' });
+    return new NextResponse(null, { status: 204 });
   } catch (error) {
     console.error('Error deleting student:', error);
-    return NextResponse.json(
-      { error: 'Failed to delete student' },
-      { status: 500 }
-    );
+    return new NextResponse('Internal Server Error', { status: 500 });
   }
 }
 
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getServerSession(authOptions) as Session;
+
+    if (!session?.user) {
+      return new NextResponse('Unauthorized', { status: 401 });
+    }
+
     const student = await prisma.student.findUnique({
       where: { id: params.id },
       include: {
@@ -140,17 +136,16 @@ export async function GET(
             date: 'desc',
           },
         },
-        assignments: {
+        submissions: {
           include: {
-            subject: true,
+            assignment: {
+              include: {
+                subject: true,
+              },
+            },
           },
           orderBy: {
-            dueDate: 'desc',
-          },
-        },
-        parent: {
-          include: {
-            user: true,
+            createdAt: 'desc',
           },
         },
         feePayments: {
@@ -162,18 +157,12 @@ export async function GET(
     });
 
     if (!student) {
-      return NextResponse.json(
-        { error: 'Student not found' },
-        { status: 404 }
-      );
+      return new NextResponse('Student not found', { status: 404 });
     }
 
     return NextResponse.json(student);
   } catch (error) {
     console.error('Error fetching student:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch student' },
-      { status: 500 }
-    );
+    return new NextResponse('Internal Server Error', { status: 500 });
   }
 } 

@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
+import type { Session } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/db/prisma';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
-import { Session } from 'next-auth';
 
 interface CustomSession extends Session {
   user: {
@@ -28,18 +28,15 @@ const createStudentSchema = z.object({
   parentPassword: z.string().min(6).optional(),
 });
 
-export async function POST(req: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions) as CustomSession | null;
+    const session = await getServerSession(authOptions) as Session;
 
-    if (!session || session.user.role !== 'ADMIN') {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+    if (!session?.user || session.user.role !== 'ADMIN') {
+      return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    const body = await req.json();
+    const body = await request.json();
     const validatedData = createStudentSchema.parse(body);
 
     // Check if user with email already exists
@@ -48,10 +45,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (existingUser) {
-      return NextResponse.json(
-        { error: 'Student with this email already exists' },
-        { status: 400 }
-      );
+      return new NextResponse('Student with this email already exists', { status: 400 });
     }
 
     // Check if class exists
@@ -60,10 +54,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (!existingClass) {
-      return NextResponse.json(
-        { error: 'Invalid class ID' },
-        { status: 400 }
-      );
+      return new NextResponse('Invalid class ID', { status: 400 });
     }
 
     // Check if roll number is unique in the class
@@ -75,10 +66,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (existingRollNumber) {
-      return NextResponse.json(
-        { error: 'Roll number already exists in this class' },
-        { status: 400 }
-      );
+      return new NextResponse('Roll number already exists in this class', { status: 400 });
     }
 
     // Hash student password
@@ -160,39 +148,46 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(newStudent, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Invalid request data', details: error.errors },
-        { status: 400 }
-      );
+      return new NextResponse(JSON.stringify({ error: 'Invalid request data', details: error.errors }), { status: 400 });
     }
 
     console.error('Error creating student:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Internal server error' },
-      { status: 500 }
-    );
+    return new NextResponse('Internal Server Error', { status: 500 });
   }
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions) as CustomSession | null;
+    const session = await getServerSession(authOptions) as Session;
 
-    if (!session) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+    if (!session?.user) {
+      return new NextResponse('Unauthorized', { status: 401 });
     }
 
+    const { searchParams } = new URL(request.url);
+    const classId = searchParams.get('classId');
+
     const students = await prisma.student.findMany({
+      where: classId ? { classId } : undefined,
       include: {
-        user: true,
+        user: {
+          select: {
+            firstName: true,
+            lastName: true,
+            email: true,
+            image: true,
+          },
+        },
         class: {
           include: {
             teacher: {
               include: {
-                user: true,
+                user: {
+                  select: {
+                    firstName: true,
+                    lastName: true,
+                  },
+                },
               },
             },
           },
@@ -208,9 +203,6 @@ export async function GET() {
     return NextResponse.json(students);
   } catch (error) {
     console.error('Error fetching students:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return new NextResponse('Internal Server Error', { status: 500 });
   }
 } 

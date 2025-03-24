@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import type { Session } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/db/prisma';
 import { z } from 'zod';
@@ -11,9 +12,9 @@ const assignmentSchema = z.object({
   dueDate: z.string().transform((str) => new Date(str)),
 });
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(authOptions) as Session;
 
     if (!session?.user) {
       return new NextResponse("Unauthorized", { status: 401 });
@@ -74,42 +75,44 @@ export async function POST(request: Request) {
   }
 }
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(authOptions) as Session;
 
     if (!session?.user) {
-      return new NextResponse("Unauthorized", { status: 401 });
-    }
-
-    const { searchParams } = new URL(request.url);
-    const teacherId = searchParams.get("teacherId");
-    const subjectId = searchParams.get("subjectId");
-
-    if (!teacherId && !subjectId) {
-      return new NextResponse("Missing required parameters", { status: 400 });
+      return new NextResponse('Unauthorized', { status: 401 });
     }
 
     const assignments = await prisma.assignment.findMany({
-      where: {
-        ...(teacherId && { teacherId }),
-        ...(subjectId && { subjectId }),
-      },
       include: {
         subject: {
           include: {
             class: true,
           },
         },
+        submissions: {
+          include: {
+            student: {
+              include: {
+                user: {
+                  select: {
+                    firstName: true,
+                    lastName: true,
+                  },
+                },
+              },
+            },
+          },
+        },
       },
       orderBy: {
-        createdAt: "desc",
+        createdAt: 'desc',
       },
     });
 
     return NextResponse.json(assignments);
   } catch (error) {
-    console.error("[ASSIGNMENTS_GET]", error);
-    return new NextResponse("Internal Error", { status: 500 });
+    console.error('Error fetching assignments:', error);
+    return new NextResponse('Internal Server Error', { status: 500 });
   }
 } 

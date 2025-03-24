@@ -1,10 +1,11 @@
+import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth/next';
+import type { Session } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/db/prisma';
 import NoticeList from '@/components/notices/NoticeList';
 import CreateNoticeButton from '@/components/notices/CreateNoticeButton';
 import { NoticeCategory } from '@prisma/client';
-import { redirect } from 'next/navigation';
 
 const roleToCategory = {
   ADMIN: NoticeCategory.GENERAL,
@@ -14,7 +15,7 @@ const roleToCategory = {
 } as const;
 
 export default async function NoticesPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession(authOptions) as Session;
 
   if (!session?.user) {
     redirect('/auth/signin');

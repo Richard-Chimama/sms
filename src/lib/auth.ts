@@ -1,29 +1,25 @@
-import type { Session } from 'next-auth';
-import type { AuthOptions } from '@auth/core';
-import { JWT } from 'next-auth/jwt';
-import CredentialsProvider from 'next-auth/providers/credentials';
-import { prisma } from '@/lib/prisma';
-import { compare } from 'bcryptjs';
-import { User } from '@prisma/client';
+import { type Session, type User as AuthUser } from "next-auth";
+import { type JWT } from "next-auth/jwt";
+import type { AuthOptions } from "next-auth/";
+import { PrismaAdapter } from "@auth/prisma-adapter";
+import CredentialsProvider from "next-auth/providers/credentials";
+import { prisma } from "@/lib/prisma";
+import { compare } from "bcryptjs";
 
-type Role = 'ADMIN' | 'TEACHER' | 'STUDENT' | 'PARENT';
+interface User extends AuthUser {
+  id: string;
+  role: string;
+  firstName?: string | null;
+  lastName?: string | null;
+}
 
-// Extend the built-in session types
-declare module 'next-auth' {
+declare module "next-auth" {
   interface Session {
-    user: {
-      id: string;
-      name?: string | null;
-      email?: string | null;
-      image?: string | null;
-      role: string;
-      firstName?: string | null;
-      lastName?: string | null;
-    }
+    user: User;
   }
 }
 
-declare module 'next-auth/jwt' {
+declare module "next-auth/jwt" {
   interface JWT {
     id: string;
     role: string;
@@ -33,55 +29,68 @@ declare module 'next-auth/jwt' {
 }
 
 export const authOptions: AuthOptions = {
+  adapter: PrismaAdapter(prisma),
   session: {
-    strategy: 'jwt' as const,
+    strategy: "jwt",
+  },
+  pages: {
+    signIn: "/auth/signin",
   },
   callbacks: {
-    async jwt({ token, user }: { token: JWT; user: any }) {
-      if (user) {
+    async jwt({ token, user, account, profile, trigger }) {
+      if (user && 'id' in user) {
         token.id = user.id;
-        token.role = user.role;
-        token.firstName = user.firstName;
-        token.lastName = user.lastName;
+        token.role = (user as User).role;
+        token.firstName = (user as User).firstName;
+        token.lastName = (user as User).lastName;
       }
       return token;
     },
-    async session({ session, token }: { session: any; token: JWT }) {
-      if (token) {
-        session.user.id = token.id;
-        session.user.role = token.role;
-        session.user.firstName = token.firstName;
-        session.user.lastName = token.lastName;
+    async session({ session, token, user, trigger }) {
+      if (session.user) {
+        session.user = {
+          ...session.user,
+          id: token.id as string,
+          role: token.role as string,
+          firstName: token.firstName as string | null,
+          lastName: token.lastName as string | null
+        } as User;
       }
       return session;
-    },
+    }
   },
   providers: [
     CredentialsProvider({
-      name: 'Credentials',
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" }
       },
-      async authorize(credentials) {
+      async authorize(credentials): Promise<User | null> {
         if (!credentials?.email || !credentials?.password) {
-          throw new Error('Please enter your email and password');
+          throw new Error("Please enter your email and password");
         }
 
         const user = await prisma.user.findUnique({
-          where: {
-            email: credentials.email,
+          where: { email: credentials.email },
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            password: true,
+            role: true,
+            firstName: true,
+            lastName: true,
           },
         });
 
         if (!user || !user.password) {
-          throw new Error('No user found with this email');
+          throw new Error("No user found with this email");
         }
 
         const isPasswordValid = await compare(credentials.password, user.password);
 
         if (!isPasswordValid) {
-          throw new Error('Invalid password');
+          throw new Error("Invalid password");
         }
 
         return {
@@ -94,8 +103,5 @@ export const authOptions: AuthOptions = {
         };
       }
     })
-  ],
-  pages: {
-    signIn: '/auth/signin',
-  },
+  ]
 }; 

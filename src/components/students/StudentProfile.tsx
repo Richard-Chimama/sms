@@ -21,7 +21,9 @@ export default function StudentProfile({ student }: StudentProfileProps) {
   const absentDays = student.attendances.filter(a => a.status === "ABSENT").length;
   const attendancePercentage = totalAttendance > 0 ? ((presentDays + lateDays) / totalAttendance) * 100 : 0;
 
-  const pendingAssignments = student.assignments.filter(a => a.status === "PENDING").length;
+  const pendingAssignments = student.assignments.filter(a => 
+    !a.submissions.some(s => s.studentId === student.id && s.status === "GRADED")
+  ).length;
 
   // Calculate fee statistics
   const totalFees = student.feePayments.reduce((sum, payment) => sum + payment.amount, 0);
@@ -239,22 +241,26 @@ export default function StudentProfile({ student }: StudentProfileProps) {
                 </tr>
               </thead>
               <tbody>
-                {student.assignments.map((assignment) => (
-                  <tr key={assignment.id} className="border-b">
-                    <td className="py-2">{assignment.title}</td>
-                    <td className="py-2">{assignment.subject.name}</td>
-                    <td className="py-2">{formatDate(assignment.dueDate)}</td>
-                    <td className="py-2">
-                      <span className={`px-2 py-1 rounded text-sm ${
-                        assignment.status === "GRADED" ? "bg-green-100 text-green-800" :
-                        assignment.status === "SUBMITTED" ? "bg-blue-100 text-blue-800" :
-                        "bg-yellow-100 text-yellow-800"
-                      }`}>
-                        {assignment.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                {student.assignments.map((assignment) => {
+                  const submission = assignment.submissions.find(s => s.studentId === student.id);
+                  const status = submission ? submission.status : "PENDING";
+                  return (
+                    <tr key={assignment.id} className="border-b">
+                      <td className="py-2">{assignment.title}</td>
+                      <td className="py-2">{assignment.subject.name}</td>
+                      <td className="py-2">{formatDate(assignment.dueDate)}</td>
+                      <td className="py-2">
+                        <span className={`px-2 py-1 rounded text-sm ${
+                          status === "GRADED" ? "bg-green-100 text-green-800" :
+                          status === "SUBMITTED" ? "bg-blue-100 text-blue-800" :
+                          "bg-yellow-100 text-yellow-800"
+                        }`}>
+                          {status}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
